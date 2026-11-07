@@ -2,13 +2,13 @@
 
 A local, buildless prototype extending the original selection / confirmation / result demo. Open `index.html` in a modern browser. No installation, account, internet connection, or server is required. Refreshing the page clears the match.
 
-## 文件从哪里开始看
+## Where to start
 
-1. `index.html`：页面结构，棋盘、玩家、确认按钮、操作员反馈。
-2. `game.js`：游戏规则和动作状态，是核心。先读 `select → confirm → motionComplete → resolve`。
-3. `script.js`：把页面按钮接到规则，并通过 `updateInterface()` 更新显示；包含本地模拟入口。
-4. `style.css`：布局、颜色、移动屏幕适配、焦点样式。
-5. `game.test.cjs`：完整对局、失败重试、重复结果、中断恢复等测试。运行 `node --test game.test.cjs`。
+1. `index.html`: Page structure, including the board, players, confirmation buttons, and operator feedback.
+2. `game.js`: Core game rules and action states. Start with the `select → confirm → motionComplete → resolve` flow.
+3. `script.js`: Connects page buttons to the game rules and refreshes the display through `updateInterface()`. Includes hooks for local simulation.
+4. `style.css`: Layout, colors, mobile styles, and focus indicators.
+5. `game.test.cjs`: Tests for complete matches, failed-placement retries, duplicate results, and interruption recovery. Run `node --test game.test.cjs`.
 
 ## Try a complete turn
 
