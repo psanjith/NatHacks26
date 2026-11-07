@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f5ef">
+  <title>Reach · Care requests</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="care-model.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-position" viewBox="0 0 48 48"><path d="M12 29h25M14 29V16m0 6h15a5 5 0 0 1 5 5v2M10 35h29M12 29v10m25-10v10"/><circle cx="23" cy="13" r="5"/></symbol>
+    <symbol id="i-comfort" viewBox="0 0 48 48"><path d="M24 39S7 28 7 17a9 9 0 0 1 17-4 9 9 0 0 1 17 4c0 11-17 22-17 22Z"/><path d="M12 24h7l3-7 5 14 3-7h6"/></symbol>
+    <symbol id="i-device" viewBox="0 0 48 48"><rect x="10" y="7" width="28" height="28" rx="4"/><path d="M18 41h12m-6-6v6M16 15h16m-16 7h10"/></symbol>
+    <symbol id="i-company" viewBox="0 0 48 48"><path d="M39 23a15 15 0 0 1-15 15h-5L9 42l2-11a15 15 0 1 1 28-8Z"/><path d="M16 23h1m6 0h1m6 0h1"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </svg>
+  <header class="site-header">
+    <a class="brand" href="./index.html" aria-label="Reach care home"><span class="brand-mark" aria-hidden="true">r<span>·</span></span><span>reach<span class="brand-caption">A LITTLE HELP. ON YOUR TERMS.</span></span></a>
+    <nav class="view-switch" aria-label="Choose a view"><button id="patient-view-button" aria-pressed="true">My requests</button><button id="caregiver-view-button" aria-pressed="false">Caregiver view <span id="inbox-count" class="count" hidden>0</span></button></nav>
+    <button id="text-size-button" class="text-toggle" aria-pressed="false" aria-label="Use larger text">Aa <span>Larger text</span></button>
+  </header>
+  <div class="demo-bar"><span><span class="status-dot"></span> INTERACTIVE PROTOTYPE</span><p>Requests stay in this browser. No real caregiver is notified.</p></div>
+  <main id="main" tabindex="-1">
+    <section id="patient-view">
+      <div class="page-heading"><div><p class="eyebrow">YOUR VOICE, YOUR CHOICE</p><h1>A little help,<br><span>when you need it.</span></h1><p class="intro">Choose what you need. Review your message.<br>See when someone responds.</p></div><div class="heading-note"><span class="note-line"></span><p>You choose the message.<br>You stay in control.</p></div></div>
+      <div class="workspace">
+        <section class="needs-section" aria-labelledby="needs-title"><div class="section-heading"><h2 id="needs-title">What would help right now?</h2><span>01 / CHOOSE</span></div><div id="need-cards" class="need-grid"></div><p class="keyboard-tip">Use Tab to move between options and Enter to choose.</p><div class="arm-connection"><div><p class="eyebrow">REACH · OBJECT ASSISTANCE</p><h3>Need help after a fetch?</h3><p>Ask someone to help reach, retrieve, or use an object.</p></div><button id="object-help-button" class="secondary" data-need="arm" aria-pressed="false">Help with an object</button><a href="../index.html">Open the original arm demo →</a></div></section>
+        <aside class="request-panel" aria-labelledby="request-panel-title"><div class="panel-header"><span class="eyebrow">02 / YOUR REQUEST</span><span id="panel-badge" class="small-label">Ready when you are</span></div><div id="request-content"></div></aside>
+      </div>
+      <section id="patient-history-section" class="history-section" hidden><div class="section-heading"><h2>Recent requests</h2><span>THIS BROWSER ONLY</span></div><div id="patient-history"></div></section>
+    </section>
+    <section id="caregiver-view" hidden>
+      <div class="page-heading"><div><p class="eyebrow">BE THERE, WITH UNDERSTANDING</p><h1>A clear request.<br><span>A reassuring response.</span></h1><p class="intro">Read the person's own message and let them know<br>what happens next.</p></div><span class="view-label">Caregiver demo</span></div>
+      <div class="caregiver-layout"><section class="inbox-panel"><div class="section-heading"><h2>Requests to respond to</h2><span id="queue-label">NO ACTIVE REQUESTS</span></div><div id="caregiver-inbox"></div></section><aside class="how-it-works"><p class="eyebrow">CLOSE THE LOOP</p><h2>Being heard<br>should be visible.</h2><ol><li><strong>I've seen this</strong><span>Let the person know you read their request.</span></li><li><strong>I'm on my way</strong><span>Tell them you are coming to help.</span></li><li><strong>Mark as handled</strong><span>Close the request after helping.</span></li></ol><p class="local-note">This view demonstrates responses on this device. It is not a connected care service.</p></aside></div>
+      <section class="history-section"><div class="section-heading"><h2>Recent activity</h2><span>THIS BROWSER ONLY</span></div><div id="caregiver-history"></div></section>
+    </section>
+    <p id="notice" class="notice" role="status" hidden></p>
+    <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  </main>
+  <footer><span>reach <span class="footer-separator">/</span> natHACK 2026</span><p>Communication prototype · No EEG connection · Not an emergency alert system</p></footer>
+</body>
+</html>
+
