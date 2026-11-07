@@ -1,0 +1,288 @@
+{
+  "purpose": "Unchanged-parameter timestep convergence and full/lite collision-model comparison.",
+  "scope": "Recorded 8-second dynamic integrations, no qpos forcing after initialization or criterion edits. Sphere floor rolling distance is not used as a convergence criterion.",
+  "baseline": [
+    {
+      "name": "sphere_baseline_z60",
+      "model_file": "PNJEX_sphere_axial_mass1_z60_fast.xml",
+      "model_sha256": "e45c8f92b043897bb04d3f8c5a6116d39192ef09f9e1447178265e14eadd57fd",
+      "dt_s": 0.0005,
+      "status": "FAIL",
+      "behavior": "dropped_or_ground_contact",
+      "minimum_hold_lift_mm": -59.87912162899345,
+      "max_slip_from_release_mm": 185.0912256569936,
+      "max_hold_slip_mm": 121.7261292307191,
+      "first_sample_slip_over_5mm_s": 2.550000000000019,
+      "first_sample_without_object_contact_s": 3.9300000000004798,
+      "telemetry_time_resolution_s": 0.01,
+      "max_object_penetration_mm": 2.4162551175825815,
+      "max_object_penetration_full_cycle_mm": 2.4162551175825815,
+      "maximum_joint_limit_overshoot_deg": 0.9391417709742892,
+      "hold_gripper_contact_fraction": 0.0,
+      "hold_two_finger_contact_fraction": 0.0,
+      "hold_pad_contact_fraction": 0.0,
+      "fixture_max_position_deviation_mm": 0.001653861124528885,
+      "release_linear_velocity_world_m_s": [
+        1.5108629925342405e-08,
+        -2.3094317441547843e-08,
+        3.973144092120868e-08
+      ],
+      "peak_cable_tension_N": [
+        7.600800477853868,
+        7.630912185947736,
+        7.610763463355088
+      ],
+      "failed_criteria": [
+        "minimum_hold_lift_at_least_50mm",
+        "slip_from_release_at_most_5mm",
+        "hold_slip_at_most_5mm",
+        "no_external_support_contact",
+        "continuous_gripper_contact",
+        "two_moving_fingers_contact",
+        "pad_contact_through_hold",
+        "penetration_at_most_0p8mm",
+        "full_cycle_object_penetration_at_most_0p8mm",
+        "all_joint_limit_overshoot_at_most_0p5deg"
+      ],
+      "warnings": {},
+      "integration_steps": 16000,
+      "wall_seconds": 42.969000000011874
+    },
+    {
+      "name": "cylinder_sweep_w12_mu05",
+      "model_file": "PNJEX_cylinder_axial_mass1_z60_fast_lite.xml",
+      "model_sha256": "296c031103b19dc7d50d9046995884979f6c11550f25eda9ec7bb95b10363034",
+      "dt_s": 0.0005,
+      "status": "FAIL",
+      "behavior": "retained_through_hold",
+      "minimum_hold_lift_mm": 53.578770582574,
+      "max_slip_from_release_mm": 15.262699768102586,
+      "max_hold_slip_mm": 0.7257031073917727,
+      "first_sample_slip_over_5mm_s": 2.580000000000029,
+      "first_sample_without_object_contact_s": null,
+      "telemetry_time_resolution_s": 0.01,
+      "max_object_penetration_mm": 0.3511436949257436,
+      "max_object_penetration_full_cycle_mm": 0.6423258254716555,
+      "maximum_joint_limit_overshoot_deg": 0.2344170840879917,
+      "hold_gripper_contact_fraction": 1.0,
+      "hold_two_finger_contact_fraction": 1.0,
+      "hold_pad_contact_fraction": 1.0,
+      "fixture_max_position_deviation_mm": 0.0012574931162918869,
+      "release_linear_velocity_world_m_s": [
+        -2.4063004380487837e-09,
+        5.292583560391576e-09,
+        -1.3399377271038578e-08
+      ],
+      "peak_cable_tension_N": [
+        7.47916869266048,
+        7.711390996198175,
+        7.711780533331307
+      ],
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "warnings": {},
+      "integration_steps": 16000,
+      "wall_seconds": 12.734000000025844
+    }
+  ],
+  "new_runs": [
+    {
+      "name": "sphere_baseline_z60_dt025",
+      "model_file": "PNJEX_sphere_axial_mass1_z60_fast.xml",
+      "model_sha256": "e45c8f92b043897bb04d3f8c5a6116d39192ef09f9e1447178265e14eadd57fd",
+      "dt_s": 0.00025,
+      "status": "FAIL",
+      "behavior": "dropped_or_ground_contact",
+      "minimum_hold_lift_mm": -59.87912232691311,
+      "max_slip_from_release_mm": 181.61704327364183,
+      "max_hold_slip_mm": 127.16136649354559,
+      "first_sample_slip_over_5mm_s": 2.5499999999999465,
+      "first_sample_without_object_contact_s": 3.9199999999991872,
+      "telemetry_time_resolution_s": 0.01,
+      "max_object_penetration_mm": 2.4177669279811935,
+      "max_object_penetration_full_cycle_mm": 2.4177669279811935,
+      "maximum_joint_limit_overshoot_deg": 1.0575181357081798,
+      "hold_gripper_contact_fraction": 0.0,
+      "hold_two_finger_contact_fraction": 0.0,
+      "hold_pad_contact_fraction": 0.0,
+      "fixture_max_position_deviation_mm": 0.0016529128041930796,
+      "release_linear_velocity_world_m_s": [
+        1.4559950637839257e-08,
+        -2.2958377345237177e-08,
+        3.84392810112414e-08
+      ],
+      "peak_cable_tension_N": [
+        7.526593241804914,
+        7.526384325977172,
+        7.545420785506851
+      ],
+      "failed_criteria": [
+        "minimum_hold_lift_at_least_50mm",
+        "slip_from_release_at_most_5mm",
+        "hold_slip_at_most_5mm",
+        "no_external_support_contact",
+        "continuous_gripper_contact",
+        "two_moving_fingers_contact",
+        "pad_contact_through_hold",
+        "penetration_at_most_0p8mm",
+        "full_cycle_object_penetration_at_most_0p8mm",
+        "all_joint_limit_overshoot_at_most_0p5deg"
+      ],
+      "warnings": {},
+      "integration_steps": 32000,
+      "wall_seconds": 29.389999999984866
+    },
+    {
+      "name": "cylinder_sweep_w12_mu05_dt025",
+      "model_file": "PNJEX_cylinder_axial_mass1_z60_fast_lite.xml",
+      "model_sha256": "296c031103b19dc7d50d9046995884979f6c11550f25eda9ec7bb95b10363034",
+      "dt_s": 0.00025,
+      "status": "FAIL",
+      "behavior": "retained_through_hold",
+      "minimum_hold_lift_mm": 52.80423514665852,
+      "max_slip_from_release_mm": 15.884246732924494,
+      "max_hold_slip_mm": 1.0384984922376463,
+      "first_sample_slip_over_5mm_s": 2.57999999999993,
+      "first_sample_without_object_contact_s": null,
+      "telemetry_time_resolution_s": 0.01,
+      "max_object_penetration_mm": 0.3812424804583757,
+      "max_object_penetration_full_cycle_mm": 0.6743096165505377,
+      "maximum_joint_limit_overshoot_deg": 0.23020295684079853,
+      "hold_gripper_contact_fraction": 1.0,
+      "hold_two_finger_contact_fraction": 1.0,
+      "hold_pad_contact_fraction": 1.0,
+      "fixture_max_position_deviation_mm": 0.001257418791951093,
+      "release_linear_velocity_world_m_s": [
+        -2.523943766761856e-09,
+        4.899332425150568e-09,
+        -1.3531171993472919e-08
+      ],
+      "peak_cable_tension_N": [
+        7.479393619734695,
+        7.579963797708094,
+        7.579706666099228
+      ],
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "warnings": {},
+      "integration_steps": 32000,
+      "wall_seconds": 28.469000000011874
+    },
+    {
+      "name": "cylinder_sweep_w12_mu05_full_dt05",
+      "model_file": "PNJEX_cylinder_axial_mass1_z60_fast.xml",
+      "model_sha256": "e72e67caf520c3b0517cc23d6e8932f673b97f9801c22a495ee17e10ed4ce144",
+      "dt_s": 0.0005,
+      "status": "FAIL",
+      "behavior": "retained_through_hold",
+      "minimum_hold_lift_mm": 53.578770582574,
+      "max_slip_from_release_mm": 15.262699768102586,
+      "max_hold_slip_mm": 0.7257031073917727,
+      "first_sample_slip_over_5mm_s": 2.580000000000029,
+      "first_sample_without_object_contact_s": null,
+      "telemetry_time_resolution_s": 0.01,
+      "max_object_penetration_mm": 0.3511436949257436,
+      "max_object_penetration_full_cycle_mm": 0.6423258254716555,
+      "maximum_joint_limit_overshoot_deg": 0.2344170840879917,
+      "hold_gripper_contact_fraction": 1.0,
+      "hold_two_finger_contact_fraction": 1.0,
+      "hold_pad_contact_fraction": 1.0,
+      "fixture_max_position_deviation_mm": 0.0012574931162918869,
+      "release_linear_velocity_world_m_s": [
+        -2.4063004380487837e-09,
+        5.292583560391576e-09,
+        -1.3399377271038578e-08
+      ],
+      "peak_cable_tension_N": [
+        7.47916869266048,
+        7.711390996198175,
+        7.711780533331307
+      ],
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "warnings": {},
+      "integration_steps": 16000,
+      "wall_seconds": 20.155999999988126
+    }
+  ],
+  "comparisons": [
+    {
+      "reference": "sphere_baseline_z60",
+      "comparison": "sphere_baseline_z60_dt025",
+      "same_status": true,
+      "same_behavior": true,
+      "same_failed_criteria": true,
+      "comparison_minus_reference": {
+        "minimum_hold_lift_mm": -6.979196598422277e-07,
+        "max_hold_slip_mm": 5.43523726282649,
+        "max_object_penetration_mm": 0.0015118103986120346,
+        "max_object_penetration_full_cycle_mm": 0.0015118103986120346,
+        "maximum_joint_limit_overshoot_deg": 0.11837636473389057,
+        "first_sample_slip_over_5mm_s": -7.238654120556021e-14,
+        "first_sample_without_object_contact_s": -0.01000000000129253
+      }
+    },
+    {
+      "reference": "cylinder_sweep_w12_mu05",
+      "comparison": "cylinder_sweep_w12_mu05_dt025",
+      "same_status": true,
+      "same_behavior": true,
+      "same_failed_criteria": true,
+      "comparison_minus_reference": {
+        "minimum_hold_lift_mm": -0.7745354359154817,
+        "max_hold_slip_mm": 0.31279538484587366,
+        "max_object_penetration_mm": 0.030098785532632122,
+        "max_object_penetration_full_cycle_mm": 0.03198379107888216,
+        "maximum_joint_limit_overshoot_deg": -0.004214127247193167,
+        "first_sample_slip_over_5mm_s": -9.903189379656396e-14,
+        "first_sample_without_object_contact_s": null
+      }
+    },
+    {
+      "reference": "cylinder_sweep_w12_mu05",
+      "comparison": "cylinder_sweep_w12_mu05_full_dt05",
+      "same_status": true,
+      "same_behavior": true,
+      "same_failed_criteria": true,
+      "comparison_minus_reference": {
+        "minimum_hold_lift_mm": 0.0,
+        "max_hold_slip_mm": 0.0,
+        "max_object_penetration_mm": 0.0,
+        "max_object_penetration_full_cycle_mm": 0.0,
+        "maximum_joint_limit_overshoot_deg": 0.0,
+        "first_sample_slip_over_5mm_s": 0.0,
+        "first_sample_without_object_contact_s": null
+      }
+    }
+  ],
+  "sampling_note": "Instability onset timestamps are first telemetry sample crossings, quantized by telemetry cadence; no interpolation or claim of exact onset.",
+  "full_lite_trajectory_equality": {
+    "time": {
+      "same_shape": true,
+      "bitwise_equal": true,
+      "max_abs_difference": 0.0
+    },
+    "qpos": {
+      "same_shape": true,
+      "bitwise_equal": true,
+      "max_abs_difference": 0.0
+    },
+    "telemetry": {
+      "same_shape": true,
+      "bitwise_equal": true,
+      "max_abs_difference": 0.0
+    },
+    "final_qpos": {
+      "same_shape": true,
+      "bitwise_equal": true,
+      "max_abs_difference": 0.0
+    }
+  },
+  "further_refinement_decision": {
+    "dt_0p000125_run": false,
+    "reason": "No behavior-category change; cylinder lift difference 0.77454 mm and hold-slip difference 0.31280 mm are below the requested greater-than-1-mm trigger. This is a two-step sensitivity check, not proof of asymptotic convergence."
+  }
+}

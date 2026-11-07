@@ -1,0 +1,247 @@
+[
+  {
+    "name": "sphere_range_spring_low",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -59.87878476990509,
+    "max_slip_from_release_mm": 399.4109924123157,
+    "max_hold_slip_mm": 253.5906166320356,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.5088375128157744,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "hold_slip_at_most_5mm",
+      "no_external_support_contact",
+      "continuous_gripper_contact",
+      "two_moving_fingers_contact",
+      "pad_contact_through_hold",
+      "penetration_at_most_0p8mm",
+      "full_cycle_object_penetration_at_most_0p8mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "sphere_range_spring_high",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -59.8786147923355,
+    "max_slip_from_release_mm": 177.6475288622517,
+    "max_hold_slip_mm": 137.66569131715877,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.7529282913140255,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "hold_slip_at_most_5mm",
+      "no_external_support_contact",
+      "continuous_gripper_contact",
+      "two_moving_fingers_contact",
+      "pad_contact_through_hold",
+      "penetration_at_most_0p8mm",
+      "full_cycle_object_penetration_at_most_0p8mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "sphere_range_preload_low",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -59.878753392616545,
+    "max_slip_from_release_mm": 375.70615527811253,
+    "max_hold_slip_mm": 245.62243289899365,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.5279195252694742,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "hold_slip_at_most_5mm",
+      "no_external_support_contact",
+      "continuous_gripper_contact",
+      "two_moving_fingers_contact",
+      "pad_contact_through_hold",
+      "penetration_at_most_0p8mm",
+      "full_cycle_object_penetration_at_most_0p8mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "sphere_range_preload_high",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -59.878617102952184,
+    "max_slip_from_release_mm": 236.0354240919158,
+    "max_hold_slip_mm": 180.08105552243077,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.767625196720818,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "hold_slip_at_most_5mm",
+      "no_external_support_contact",
+      "continuous_gripper_contact",
+      "two_moving_fingers_contact",
+      "pad_contact_through_hold",
+      "penetration_at_most_0p8mm",
+      "full_cycle_object_penetration_at_most_0p8mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "sphere_range_cable_soft",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -59.87819162296678,
+    "max_slip_from_release_mm": 478.3685194164985,
+    "max_hold_slip_mm": 294.6192386156991,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.8139337723407556,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "hold_slip_at_most_5mm",
+      "no_external_support_contact",
+      "continuous_gripper_contact",
+      "two_moving_fingers_contact",
+      "pad_contact_through_hold",
+      "penetration_at_most_0p8mm",
+      "full_cycle_object_penetration_at_most_0p8mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "sphere_range_cable_stiff",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -59.91600696492423,
+    "max_slip_from_release_mm": 157.33442045777878,
+    "max_hold_slip_mm": 52.431223309436184,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.6865455965404574,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "hold_slip_at_most_5mm",
+      "no_external_support_contact",
+      "continuous_gripper_contact",
+      "two_moving_fingers_contact",
+      "pad_contact_through_hold",
+      "penetration_at_most_0p8mm",
+      "full_cycle_object_penetration_at_most_0p8mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "sphere_range_slack_zero",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -62.95770808481009,
+    "max_slip_from_release_mm": 156.82014978162724,
+    "max_hold_slip_mm": 45.63271165696718,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.6216725565501433,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "hold_slip_at_most_5mm",
+      "no_external_support_contact",
+      "continuous_gripper_contact",
+      "two_moving_fingers_contact",
+      "pad_contact_through_hold",
+      "penetration_at_most_0p8mm",
+      "full_cycle_object_penetration_at_most_0p8mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "sphere_range_slack_2mm",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -59.87852651465513,
+    "max_slip_from_release_mm": 226.3095882796825,
+    "max_hold_slip_mm": 183.04319476107392,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.76487785803611,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "hold_slip_at_most_5mm",
+      "no_external_support_contact",
+      "continuous_gripper_contact",
+      "two_moving_fingers_contact",
+      "pad_contact_through_hold",
+      "penetration_at_most_0p8mm",
+      "full_cycle_object_penetration_at_most_0p8mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "cylinder_range_microcap_003",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": 38.52914147252352,
+    "max_slip_from_release_mm": 30.04819276664217,
+    "max_hold_slip_mm": 3.918258239039899,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 1.0968978029653036,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "all_joint_limit_overshoot_at_most_0p5deg"
+    ]
+  },
+  {
+    "name": "cylinder_range_microcap_010",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": 55.20234712320711,
+    "max_slip_from_release_mm": 14.106651379041894,
+    "max_hold_slip_mm": 0.2616347370320438,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.2344170840879917,
+    "failed_criteria": [
+      "slip_from_release_at_most_5mm"
+    ]
+  },
+  {
+    "name": "cylinder_range_armcap_100",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": -43.64276889242511,
+    "max_slip_from_release_mm": 15.677077157973766,
+    "max_hold_slip_mm": 2.128680041969727,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.25019223081482367,
+    "failed_criteria": [
+      "minimum_hold_lift_at_least_50mm",
+      "slip_from_release_at_most_5mm",
+      "no_external_support_contact",
+      "arm_tracking_error_at_most_3deg"
+    ]
+  },
+  {
+    "name": "cylinder_range_armature_1e5",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": 53.579038882814125,
+    "max_slip_from_release_mm": 15.348197842328421,
+    "max_hold_slip_mm": 0.7167682184933325,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.23441708401392827,
+    "failed_criteria": [
+      "slip_from_release_at_most_5mm"
+    ]
+  },
+  {
+    "name": "cylinder_range_disturb_02N",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": 53.578770582574,
+    "max_slip_from_release_mm": 15.262699768102586,
+    "max_hold_slip_mm": 0.7790843539478638,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.2344170840879917,
+    "failed_criteria": [
+      "slip_from_release_at_most_5mm"
+    ]
+  },
+  {
+    "name": "cylinder_range_printmass075",
+    "status": "FAIL",
+    "minimum_hold_lift_mm": 53.65653053248212,
+    "max_slip_from_release_mm": 15.409785814421761,
+    "max_hold_slip_mm": 0.8705354171535064,
+    "initial_object_penetration_mm": 0.0,
+    "maximum_joint_limit_overshoot_deg": 0.2563798062380736,
+    "failed_criteria": [
+      "slip_from_release_at_most_5mm"
+    ]
+  }
+]

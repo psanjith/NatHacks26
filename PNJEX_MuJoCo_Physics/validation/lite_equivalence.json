@@ -1,0 +1,1180 @@
+{
+  "schema_version": 1,
+  "case_scope": "100g sphere,diameter60mm,axial,object_palm_z60mm; baseline default Parameters only",
+  "conclusion": "EXACT_MATCH_FOR_RECORDED_SCENARIO",
+  "full_status": "FAIL",
+  "lite_status": "FAIL",
+  "same_classification": true,
+  "baseline_is_a_grasp_failure": true,
+  "models": {
+    "full": {
+      "file": "outputs\\PNJEX_MuJoCo_Physics\\models\\PNJEX_sphere_axial_mass1_z60_fast.xml",
+      "sha256": "e45c8f92b043897bb04d3f8c5a6116d39192ef09f9e1447178265e14eadd57fd",
+      "result_sha_matches_file": true,
+      "worldbody_geom_count": 5094,
+      "geometry_variant": "full"
+    },
+    "lite": {
+      "file": "outputs\\PNJEX_MuJoCo_Physics\\models\\PNJEX_sphere_axial_mass1_z60_fast_lite.xml",
+      "sha256": "6890a522e45371b75a82fce7ed55958e396fc55706895d29751ea52401fdbc2c",
+      "result_sha_matches_file": true,
+      "worldbody_geom_count": 3432,
+      "geometry_variant": "lite_base"
+    }
+  },
+  "provenance": {
+    "full_result": "outputs\\PNJEX_MuJoCo_Physics\\results\\sphere_baseline_z60.json",
+    "full_result_sha256": "e445373aaa2ce6ff7ec1ae2cf0165f3987a0f834cbe5edc5264f4d691bd5e7fa",
+    "lite_result": "outputs\\PNJEX_MuJoCo_Physics\\results\\sphere_baseline_z60_lite_check.json",
+    "lite_result_sha256": "b0bdcec50dc2800c0864cd2b8a940ef66f0994c49595803c60532187a182526e",
+    "full_trajectory_sha256": "3dc811cb4eed37d442d7ed0b7ae9298d5dfe290955f15c502690d25810a880a4",
+    "lite_trajectory_sha256": "3dc811cb4eed37d442d7ed0b7ae9298d5dfe290955f15c502690d25810a880a4",
+    "current_simulator_sha256": "824ab4a794411e8b1b4b1f6bd7712f5f8b01c178423dae9d6a0934978254ec19",
+    "mujoco_version": "4.0.0"
+  },
+  "inputs": {
+    "parameters_equal_except_name": true,
+    "parameters": {
+      "dt": 0.0005,
+      "friction": 0.5,
+      "arm_cap_Nm": 1.5,
+      "micro_cap_Nm": 0.06,
+      "cable_stiffness_N_m": 1500,
+      "cable_damping_Ns_m": 0.1,
+      "cable_slack_m": 0.001,
+      "spring_scale": 1.0,
+      "preload_delta_deg": 0.0,
+      "finger_damping_Nms": 0.0003,
+      "finger_frictionloss_Nm": 0.0,
+      "spool_armature_kgm2": 1e-06,
+      "contact_timeconst_s": 0.006,
+      "contact_dampratio": 1.0,
+      "wind_angle_rad": 1.6,
+      "arm_kp": 50.0,
+      "arm_kd": 0.6,
+      "spool_kp": 0.4,
+      "spool_kd": 0.0015,
+      "gravity_compensation": true,
+      "release_s": 2.5,
+      "lift_start_s": 3.0,
+      "lift_end_s": 5.0,
+      "end_s": 8.0,
+      "close_start_s": 0.3,
+      "close_end_s": 2.2,
+      "disturb_N": 0.0
+    },
+    "object_equal": true,
+    "object": {
+      "shape": "sphere",
+      "mass_kg": 0.1,
+      "diameter_m": 0.06,
+      "height_m": null,
+      "orientation": "axial",
+      "object_palm_z_m": 0.06,
+      "print_mass_scale": 1.0
+    }
+  },
+  "trajectory_comparisons": {
+    "time": {
+      "full_shape": [
+        200
+      ],
+      "lite_shape": [
+        200
+      ],
+      "shape_equal": true,
+      "values_exactly_equal": true,
+      "bitwise_equal": true,
+      "all_values_finite": true,
+      "max_abs_difference": 0.0,
+      "rms_difference": 0.0,
+      "differing_values": 0,
+      "per_qpos_column_max_abs_difference": null
+    },
+    "qpos": {
+      "full_shape": [
+        200,
+        20
+      ],
+      "lite_shape": [
+        200,
+        20
+      ],
+      "shape_equal": true,
+      "values_exactly_equal": true,
+      "bitwise_equal": true,
+      "all_values_finite": true,
+      "max_abs_difference": 0.0,
+      "rms_difference": 0.0,
+      "differing_values": 0,
+      "per_qpos_column_max_abs_difference": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "final_qpos": {
+      "full_shape": [
+        20
+      ],
+      "lite_shape": [
+        20
+      ],
+      "shape_equal": true,
+      "values_exactly_equal": true,
+      "bitwise_equal": true,
+      "all_values_finite": true,
+      "max_abs_difference": 0.0,
+      "rms_difference": 0.0,
+      "differing_values": 0,
+      "per_qpos_column_max_abs_difference": null
+    },
+    "telemetry": {
+      "full_shape": [
+        800,
+        32
+      ],
+      "lite_shape": [
+        800,
+        32
+      ],
+      "shape_equal": true,
+      "values_exactly_equal": true,
+      "bitwise_equal": true,
+      "all_values_finite": true,
+      "max_abs_difference": 0.0,
+      "rms_difference": 0.0,
+      "differing_values": 0,
+      "per_qpos_column_max_abs_difference": null
+    }
+  },
+  "observation_scope": {
+    "integration_steps": 16000,
+    "integrator_timestep_s": 0.0005,
+    "criteria_checked_every_step": 0.0005,
+    "qpos_saved_samples": 200,
+    "qpos_columns": 20,
+    "qpos_saved_cadence_s": 0.039999999999995595,
+    "telemetry_samples": 800,
+    "telemetry_columns": 32,
+    "telemetry_cadence_s": 0.01,
+    "caveat": "All saved qpos components at every saved time and final_qpos were compared; unsaved intermediate integration-step qpos cannot be retrospectively compared. Aggregate physical criteria were evaluated at every integration step by simulate.py."
+  },
+  "criteria_equal": true,
+  "criteria": [
+    {
+      "name": "all_joint_limit_overshoot_at_most_0p5deg",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "arm_tracking_error_at_most_3deg",
+      "full": true,
+      "lite": true,
+      "equal": true
+    },
+    {
+      "name": "continuous_gripper_contact",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "finite_without_engine_warnings",
+      "full": true,
+      "lite": true,
+      "equal": true
+    },
+    {
+      "name": "fixture_permanently_released",
+      "full": true,
+      "lite": true,
+      "equal": true
+    },
+    {
+      "name": "full_cycle_object_penetration_at_most_0p8mm",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "full_three_second_hold",
+      "full": true,
+      "lite": true,
+      "equal": true
+    },
+    {
+      "name": "hold_slip_at_most_5mm",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "initial_placement_clear",
+      "full": true,
+      "lite": true,
+      "equal": true
+    },
+    {
+      "name": "minimum_hold_lift_at_least_50mm",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "no_direct_generalized_force_on_payload",
+      "full": true,
+      "lite": true,
+      "equal": true
+    },
+    {
+      "name": "no_external_support_contact",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "pad_contact_through_hold",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "penetration_at_most_0p8mm",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "robot_penetration_at_most_1mm",
+      "full": true,
+      "lite": true,
+      "equal": true
+    },
+    {
+      "name": "slip_from_release_at_most_5mm",
+      "full": false,
+      "lite": false,
+      "equal": true
+    },
+    {
+      "name": "two_moving_fingers_contact",
+      "full": false,
+      "lite": false,
+      "equal": true
+    }
+  ],
+  "all_shared_physical_result_fields_equal": true,
+  "numeric_fields_compared": 124,
+  "numeric_field_differences": [
+    {
+      "path": "completed_hold_duration_s",
+      "full": 2.999999999998286,
+      "lite": 2.999999999998286,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "completed_integration_steps",
+      "full": 16000,
+      "lite": 16000,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "criteria_observation_cadence_s",
+      "full": 0.0005,
+      "lite": 0.0005,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "fixture_max_orientation_deviation_deg",
+      "full": 0.0035638311956767265,
+      "lite": 0.0035638311956767265,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "fixture_max_position_deviation_mm",
+      "full": 0.001653861124528885,
+      "lite": 0.001653861124528885,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "geometry_observation_count",
+      "full": 16001,
+      "lite": 16001,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_arm_saturation_fraction[0]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_arm_saturation_fraction[1]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_arm_saturation_fraction[2]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_arm_saturation_fraction[3]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_finger_contact_fraction[0]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_finger_contact_fraction[1]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_finger_contact_fraction[2]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_gripper_contact_fraction",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_micro_saturation_fraction[0]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_micro_saturation_fraction[1]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_micro_saturation_fraction[2]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_pad_contact_fraction",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_step_observations",
+      "full": 6000,
+      "lite": 6000,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "hold_two_finger_contact_fraction",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "initial_object_penetration_mm",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "initial_placement_tolerance_mm",
+      "full": 0.1,
+      "lite": 0.1,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.elbow_joint.above_upper_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.elbow_joint.below_lower_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.elbow_joint.maximum_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_distal_joint.above_upper_deg",
+      "full": 0.9140504266241255,
+      "lite": 0.9140504266241255,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_distal_joint.below_lower_deg",
+      "full": 0.5156417056689593,
+      "lite": 0.5156417056689593,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_distal_joint.maximum_deg",
+      "full": 0.9140504266241255,
+      "lite": 0.9140504266241255,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_proximal_joint.above_upper_deg",
+      "full": 0.7273897910433557,
+      "lite": 0.7273897910433557,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_proximal_joint.below_lower_deg",
+      "full": 0.07493063092380889,
+      "lite": 0.07493063092380889,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_proximal_joint.maximum_deg",
+      "full": 0.7273897910433557,
+      "lite": 0.7273897910433557,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_spool_joint.above_upper_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_spool_joint.below_lower_deg",
+      "full": 8.188697014335176e-05,
+      "lite": 8.188697014335176e-05,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_1_spool_joint.maximum_deg",
+      "full": 8.188697014335176e-05,
+      "lite": 8.188697014335176e-05,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_distal_joint.above_upper_deg",
+      "full": 0.6396738015659892,
+      "lite": 0.6396738015659892,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_distal_joint.below_lower_deg",
+      "full": 0.21344373813197956,
+      "lite": 0.21344373813197956,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_distal_joint.maximum_deg",
+      "full": 0.6396738015659892,
+      "lite": 0.6396738015659892,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_proximal_joint.above_upper_deg",
+      "full": 0.6674085441497604,
+      "lite": 0.6674085441497604,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_proximal_joint.below_lower_deg",
+      "full": 0.10642371925544078,
+      "lite": 0.10642371925544078,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_proximal_joint.maximum_deg",
+      "full": 0.6674085441497604,
+      "lite": 0.6674085441497604,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_spool_joint.above_upper_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_spool_joint.below_lower_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_2_spool_joint.maximum_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_distal_joint.above_upper_deg",
+      "full": 0.87994903586135,
+      "lite": 0.87994903586135,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_distal_joint.below_lower_deg",
+      "full": 0.2134846176903921,
+      "lite": 0.2134846176903921,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_distal_joint.maximum_deg",
+      "full": 0.87994903586135,
+      "lite": 0.87994903586135,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_proximal_joint.above_upper_deg",
+      "full": 0.9391417709742892,
+      "lite": 0.9391417709742892,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_proximal_joint.below_lower_deg",
+      "full": 0.11280746376687216,
+      "lite": 0.11280746376687216,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_proximal_joint.maximum_deg",
+      "full": 0.9391417709742892,
+      "lite": 0.9391417709742892,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_spool_joint.above_upper_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_spool_joint.below_lower_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.finger_3_spool_joint.maximum_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.shoulder_joint.above_upper_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.shoulder_joint.below_lower_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.shoulder_joint.maximum_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.wrist_joint.above_upper_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.wrist_joint.below_lower_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.wrist_joint.maximum_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.yaw_joint.above_upper_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.yaw_joint.below_lower_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_overshoot_deg.yaw_joint.maximum_deg",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "joint_limit_tolerance_deg",
+      "full": 0.5,
+      "lite": 0.5,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_arm_tracking_error_deg[0]",
+      "full": 0.08678200909891831,
+      "lite": 0.08678200909891831,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_arm_tracking_error_deg[1]",
+      "full": 0.3305087680959758,
+      "lite": 0.3305087680959758,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_arm_tracking_error_deg[2]",
+      "full": 0.3953519264519324,
+      "lite": 0.3953519264519324,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_arm_tracking_error_deg[3]",
+      "full": 0.25000712921143214,
+      "lite": 0.25000712921143214,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_cable_energy_balance_residual_W",
+      "full": 3.469446951953614e-16,
+      "lite": 3.469446951953614e-16,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_hold_slip_mm",
+      "full": 121.7261292307191,
+      "lite": 121.7261292307191,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_object_penetration_full_cycle_mm",
+      "full": 2.4162551175825815,
+      "lite": 2.4162551175825815,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_object_penetration_mm",
+      "full": 2.4162551175825815,
+      "lite": 2.4162551175825815,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_object_penetration_postrelease_mm",
+      "full": 2.4162551175825815,
+      "lite": 2.4162551175825815,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_payload_free_dof_qfrc_applied_abs[0]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_payload_free_dof_qfrc_applied_abs[1]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_payload_free_dof_qfrc_applied_abs[2]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_payload_free_dof_qfrc_applied_abs[3]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_payload_free_dof_qfrc_applied_abs[4]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_payload_free_dof_qfrc_applied_abs[5]",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_robot_penetration_mm",
+      "full": 0.0,
+      "lite": 0.0,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_slip_from_release_mm",
+      "full": 185.0912256569936,
+      "lite": 185.0912256569936,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_spool_speed_rad_s[0]",
+      "full": 8.459309942242516,
+      "lite": 8.459309942242516,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_spool_speed_rad_s[1]",
+      "full": 11.790353029468768,
+      "lite": 11.790353029468768,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "max_spool_speed_rad_s[2]",
+      "full": 8.954193712083978,
+      "lite": 8.954193712083978,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "maximum_joint_limit_overshoot_deg",
+      "full": 0.9391417709742892,
+      "lite": 0.9391417709742892,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "mean_hold_object_contact_vertical_N",
+      "full": 0.980665,
+      "lite": 0.980665,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "minimum_hold_lift_mm",
+      "full": -59.87912162899345,
+      "lite": -59.87912162899345,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "object.diameter_m",
+      "full": 0.06,
+      "lite": 0.06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "object.mass_kg",
+      "full": 0.1,
+      "lite": 0.1,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "object.object_palm_z_m",
+      "full": 0.06,
+      "lite": 0.06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "object.print_mass_scale",
+      "full": 1.0,
+      "lite": 1,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_arm_torque_Nm[0]",
+      "full": 0.09007306284311914,
+      "lite": 0.09007306284311914,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_arm_torque_Nm[1]",
+      "full": 1.168531033518556,
+      "lite": 1.168531033518556,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_arm_torque_Nm[2]",
+      "full": 1.0714690880696662,
+      "lite": 1.0714690880696662,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_arm_torque_Nm[3]",
+      "full": 0.5660608346694366,
+      "lite": 0.5660608346694366,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_cable_tension_N[0]",
+      "full": 7.600800477853868,
+      "lite": 7.600800477853868,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_cable_tension_N[1]",
+      "full": 7.630912185947736,
+      "lite": 7.630912185947736,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_cable_tension_N[2]",
+      "full": 7.610763463355088,
+      "lite": 7.610763463355088,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_micro_torque_Nm[0]",
+      "full": 0.06,
+      "lite": 0.06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_micro_torque_Nm[1]",
+      "full": 0.06,
+      "lite": 0.06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "peak_micro_torque_Nm[2]",
+      "full": 0.06,
+      "lite": 0.06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_max_cable_energy_balance_residual_W",
+      "full": 3.469446951953614e-16,
+      "lite": 3.469446951953614e-16,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_max_spool_speed_rad_s[0]",
+      "full": 8.459309942242516,
+      "lite": 8.459309942242516,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_max_spool_speed_rad_s[1]",
+      "full": 11.790353029468768,
+      "lite": 11.790353029468768,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_max_spool_speed_rad_s[2]",
+      "full": 8.954193712083978,
+      "lite": 8.954193712083978,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_arm_torque_Nm[0]",
+      "full": 0.09007306284311914,
+      "lite": 0.09007306284311914,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_arm_torque_Nm[1]",
+      "full": 1.168531033518556,
+      "lite": 1.168531033518556,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_arm_torque_Nm[2]",
+      "full": 1.0714690880696662,
+      "lite": 1.0714690880696662,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_arm_torque_Nm[3]",
+      "full": 0.5660608346694366,
+      "lite": 0.5660608346694366,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_cable_tension_N[0]",
+      "full": 7.600800477853868,
+      "lite": 7.600800477853868,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_cable_tension_N[1]",
+      "full": 7.630912185947736,
+      "lite": 7.630912185947736,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_cable_tension_N[2]",
+      "full": 7.610763463355088,
+      "lite": 7.610763463355088,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_micro_torque_Nm[0]",
+      "full": 0.06,
+      "lite": 0.06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_micro_torque_Nm[1]",
+      "full": 0.06,
+      "lite": 0.06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "postrelease_peak_micro_torque_Nm[2]",
+      "full": 0.06,
+      "lite": 0.06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_angular_velocity_world_rad_s[0]",
+      "full": -2.7127504162345877e-06,
+      "lite": -2.7127504162345877e-06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_angular_velocity_world_rad_s[1]",
+      "full": -1.4692689199665894e-05,
+      "lite": -1.4692689199665894e-05,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_angular_velocity_world_rad_s[2]",
+      "full": -4.5778564906845e-06,
+      "lite": -4.5778564906845e-06,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_linear_velocity_world_m_s[0]",
+      "full": 1.5108629925342405e-08,
+      "lite": 1.5108629925342405e-08,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_linear_velocity_world_m_s[1]",
+      "full": -2.3094317441547843e-08,
+      "lite": -2.3094317441547843e-08,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_linear_velocity_world_m_s[2]",
+      "full": 3.973144092120868e-08,
+      "lite": 3.973144092120868e-08,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_orientation_deviation_deg",
+      "full": 0.00046994791353902315,
+      "lite": 0.00046994791353902315,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_position_deviation_mm",
+      "full": 0.0016367780511898928,
+      "lite": 0.0016367780511898928,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "release_time_s",
+      "full": 2.500000000000002,
+      "lite": 2.500000000000002,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "simulation_seconds",
+      "full": 7.999999999998286,
+      "lite": 7.999999999998286,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    },
+    {
+      "path": "telemetry_cadence_s",
+      "full": 0.01,
+      "lite": 0.01,
+      "exactly_equal": true,
+      "abs_difference": 0.0
+    }
+  ],
+  "unexpected_result_differences": [],
+  "timing": {
+    "full_wall_seconds": 42.969000000011874,
+    "lite_wall_seconds": 10.35899999999674,
+    "speedup_ratio": 4.147987257459735,
+    "wall_time_reduction_fraction": 0.7589192208337667,
+    "note": "Single runs,not a statistical benchmark; simulate.py wall_seconds covers integration loop,not XML compilation."
+  },
+  "excluded_expected_metadata_differences": [
+    "collision_geometry_variant",
+    "model_file",
+    "model_sha256",
+    "name",
+    "parameters",
+    "wall_seconds"
+  ],
+  "applicability": {
+    "this_tested_scenario_unaffected": true,
+    "can_use_lite_as_exploratory_sweep_accelerator": true,
+    "unrestricted_equivalence_claim": false,
+    "requires_full_recheck_of_key_results": true,
+    "note": "This exact-match failing baseline supports using lite for provisional sweeps. It does not establish successful grasping or equivalence for other shapes,placements,parameter settings,base-contact trajectories,or successful cases. Key candidates must be rerun with full geometry."
+  }
+}

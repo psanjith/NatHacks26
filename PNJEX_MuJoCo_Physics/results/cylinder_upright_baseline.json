@@ -1,0 +1,639 @@
+{
+  "name": "cylinder_upright_baseline",
+  "status": "FAIL",
+  "model_file": "PNJEX_cylinder_upright_mass1_z60_fast.xml",
+  "model_sha256": "e90eaf0e36e90acad5f64078e0886f07d62c7017b9bfa370781e3e234462b4eb",
+  "mujoco_version": "4.0.0",
+  "parameters": {
+    "name": "cylinder_upright_baseline",
+    "dt": 0.0005,
+    "friction": 0.5,
+    "arm_cap_Nm": 1.5,
+    "micro_cap_Nm": 0.06,
+    "cable_stiffness_N_m": 1500,
+    "cable_damping_Ns_m": 0.1,
+    "cable_slack_m": 0.001,
+    "spring_scale": 1.0,
+    "preload_delta_deg": 0.0,
+    "finger_damping_Nms": 0.0003,
+    "finger_frictionloss_Nm": 0.0,
+    "spool_armature_kgm2": 1e-06,
+    "contact_timeconst_s": 0.006,
+    "contact_dampratio": 1.0,
+    "wind_angle_rad": 1.6,
+    "arm_kp": 50.0,
+    "arm_kd": 0.6,
+    "spool_kp": 0.4,
+    "spool_kd": 0.0015,
+    "gravity_compensation": true,
+    "release_s": 2.5,
+    "lift_start_s": 3.0,
+    "lift_end_s": 5.0,
+    "end_s": 8.0,
+    "close_start_s": 0.3,
+    "close_end_s": 2.2,
+    "disturb_N": 0.0
+  },
+  "object": {
+    "shape": "cylinder",
+    "mass_kg": 0.1,
+    "diameter_m": 0.06,
+    "height_m": 0.08,
+    "orientation": "upright",
+    "object_palm_z_m": 0.06,
+    "print_mass_scale": 1
+  },
+  "criteria": {
+    "finite_without_engine_warnings": true,
+    "fixture_permanently_released": true,
+    "initial_placement_clear": false,
+    "minimum_hold_lift_at_least_50mm": false,
+    "slip_from_release_at_most_5mm": false,
+    "hold_slip_at_most_5mm": false,
+    "no_external_support_contact": false,
+    "continuous_gripper_contact": false,
+    "two_moving_fingers_contact": false,
+    "pad_contact_through_hold": false,
+    "penetration_at_most_0p8mm": false,
+    "robot_penetration_at_most_1mm": true,
+    "full_cycle_object_penetration_at_most_0p8mm": false,
+    "all_joint_limit_overshoot_at_most_0p5deg": false,
+    "no_direct_generalized_force_on_payload": true,
+    "arm_tracking_error_at_most_3deg": true,
+    "full_three_second_hold": true
+  },
+  "minimum_hold_lift_mm": -60.258363005468304,
+  "max_slip_from_release_mm": 140.96193880343685,
+  "max_hold_slip_mm": 130.85795115791294,
+  "max_object_penetration_mm": 2.8487135305396927,
+  "max_robot_penetration_mm": 0.0,
+  "max_object_penetration_postrelease_mm": 2.8487135305396927,
+  "max_object_penetration_full_cycle_mm": 7.153577123080068,
+  "initial_object_penetration_mm": 7.153577123080068,
+  "initial_placement_tolerance_mm": 0.1,
+  "initial_placement_contacts": [
+    {
+      "geom": "collision_022_13",
+      "penetration_mm": 0.5973886499184428
+    },
+    {
+      "geom": "collision_022_13",
+      "penetration_mm": 0.5973889193365001
+    },
+    {
+      "geom": "collision_022_17",
+      "penetration_mm": 0.6404382985388674
+    },
+    {
+      "geom": "collision_022_17",
+      "penetration_mm": 0.6339003496955709
+    },
+    {
+      "geom": "collision_022_18",
+      "penetration_mm": 1.547202989658658
+    },
+    {
+      "geom": "collision_022_18",
+      "penetration_mm": 1.5465398779195145
+    },
+    {
+      "geom": "collision_022_34",
+      "penetration_mm": 2.634219695297882
+    },
+    {
+      "geom": "collision_022_34",
+      "penetration_mm": 2.6026573046029067
+    },
+    {
+      "geom": "collision_022_57",
+      "penetration_mm": 1.7350436522116235
+    },
+    {
+      "geom": "collision_022_57",
+      "penetration_mm": 1.735043728066904
+    },
+    {
+      "geom": "collision_022_63",
+      "penetration_mm": 2.676730078438272
+    },
+    {
+      "geom": "collision_022_63",
+      "penetration_mm": 2.675877883081629
+    },
+    {
+      "geom": "collision_022_85",
+      "penetration_mm": 0.8441810150015688
+    },
+    {
+      "geom": "collision_022_85",
+      "penetration_mm": 0.8432750564594943
+    },
+    {
+      "geom": "collision_022_86",
+      "penetration_mm": 1.7349962544952746
+    },
+    {
+      "geom": "collision_022_86",
+      "penetration_mm": 1.7349962055509538
+    },
+    {
+      "geom": "collision_022_90",
+      "penetration_mm": 1.488573345741595
+    },
+    {
+      "geom": "collision_022_90",
+      "penetration_mm": 1.4874522429685622
+    },
+    {
+      "geom": "collision_022_98",
+      "penetration_mm": 0.32624406955342383
+    },
+    {
+      "geom": "collision_022_112",
+      "penetration_mm": 2.6838975892126973
+    },
+    {
+      "geom": "collision_022_112",
+      "penetration_mm": 2.664258817058507
+    },
+    {
+      "geom": "collision_022_113",
+      "penetration_mm": 4.787410857718957
+    },
+    {
+      "geom": "collision_022_113",
+      "penetration_mm": 4.777169068521895
+    },
+    {
+      "geom": "collision_022_113",
+      "penetration_mm": 4.786998928020893
+    },
+    {
+      "geom": "collision_022_114",
+      "penetration_mm": 4.551602275595257
+    },
+    {
+      "geom": "collision_022_114",
+      "penetration_mm": 4.5499063345588455
+    },
+    {
+      "geom": "collision_022_115",
+      "penetration_mm": 3.8321393376068436
+    },
+    {
+      "geom": "collision_022_115",
+      "penetration_mm": 3.8321393689211005
+    },
+    {
+      "geom": "collision_022_117",
+      "penetration_mm": 0.01975919989503966
+    },
+    {
+      "geom": "collision_022_118",
+      "penetration_mm": 0.45564678618278853
+    },
+    {
+      "geom": "collision_024_00",
+      "penetration_mm": 0.4330857327050075
+    },
+    {
+      "geom": "collision_024_00",
+      "penetration_mm": 0.43308573269647266
+    },
+    {
+      "geom": "collision_024_03",
+      "penetration_mm": 0.9211820332445247
+    },
+    {
+      "geom": "collision_024_03",
+      "penetration_mm": 0.921181964109466
+    },
+    {
+      "geom": "collision_023_05",
+      "penetration_mm": 1.2400168777712723
+    },
+    {
+      "geom": "collision_023_13",
+      "penetration_mm": 1.6714771482608974
+    },
+    {
+      "geom": "collision_023_14",
+      "penetration_mm": 1.7197174631607715
+    },
+    {
+      "geom": "collision_023_15",
+      "penetration_mm": 1.7559660749678165
+    },
+    {
+      "geom": "collision_023_16",
+      "penetration_mm": 7.153577104832706
+    },
+    {
+      "geom": "collision_023_16",
+      "penetration_mm": 7.153577123080068
+    },
+    {
+      "geom": "collision_023_18",
+      "penetration_mm": 5.022857941367725
+    },
+    {
+      "geom": "collision_023_18",
+      "penetration_mm": 5.021391596181424
+    },
+    {
+      "geom": "collision_023_24",
+      "penetration_mm": 6.12999107344595
+    },
+    {
+      "geom": "collision_023_26",
+      "penetration_mm": 0.1728377501444023
+    },
+    {
+      "geom": "collision_023_26",
+      "penetration_mm": 0.17284989988638644
+    },
+    {
+      "geom": "collision_023_28",
+      "penetration_mm": 0.04537553979121458
+    },
+    {
+      "geom": "collision_023_28",
+      "penetration_mm": 0.04515824257263212
+    },
+    {
+      "geom": "collision_023_29",
+      "penetration_mm": 1.0395636956850516
+    },
+    {
+      "geom": "collision_023_30",
+      "penetration_mm": 0.7287015355213633
+    },
+    {
+      "geom": "collision_023_30",
+      "penetration_mm": 0.7287015355213633
+    },
+    {
+      "geom": "collision_023_31",
+      "penetration_mm": 2.2436157340521956
+    },
+    {
+      "geom": "collision_023_33",
+      "penetration_mm": 0.08311946500178123
+    },
+    {
+      "geom": "collision_023_33",
+      "penetration_mm": 0.0830868915991428
+    },
+    {
+      "geom": "collision_023_34",
+      "penetration_mm": 0.12560702405480711
+    },
+    {
+      "geom": "collision_023_34",
+      "penetration_mm": 0.12560702405480711
+    },
+    {
+      "geom": "collision_023_35",
+      "penetration_mm": 0.3754220102879879
+    },
+    {
+      "geom": "collision_023_35",
+      "penetration_mm": 0.3754220102879879
+    },
+    {
+      "geom": "collision_023_36",
+      "penetration_mm": 4.278092177242357
+    },
+    {
+      "geom": "collision_023_36",
+      "penetration_mm": 4.270023420842831
+    },
+    {
+      "geom": "collision_023_37",
+      "penetration_mm": 4.567923639185408
+    },
+    {
+      "geom": "collision_023_43",
+      "penetration_mm": 0.9121404239325435
+    },
+    {
+      "geom": "collision_023_43",
+      "penetration_mm": 0.9121404239325435
+    },
+    {
+      "geom": "collision_023_44",
+      "penetration_mm": 2.507963268961646
+    },
+    {
+      "geom": "collision_023_45",
+      "penetration_mm": 0.4505781657886295
+    },
+    {
+      "geom": "collision_023_45",
+      "penetration_mm": 0.44938095179922094
+    },
+    {
+      "geom": "collision_023_46",
+      "penetration_mm": 2.3192479826299683
+    },
+    {
+      "geom": "collision_023_47",
+      "penetration_mm": 2.897822983123008
+    },
+    {
+      "geom": "collision_023_47",
+      "penetration_mm": 2.8663675732080867
+    },
+    {
+      "geom": "collision_023_48",
+      "penetration_mm": 2.3907502275741095
+    },
+    {
+      "geom": "collision_023_48",
+      "penetration_mm": 2.3838286943396736
+    },
+    {
+      "geom": "collision_023_49",
+      "penetration_mm": 1.8937204369986333
+    },
+    {
+      "geom": "collision_023_49",
+      "penetration_mm": 1.8548190604095183
+    },
+    {
+      "geom": "collision_023_53",
+      "penetration_mm": 2.7270656622557095
+    },
+    {
+      "geom": "collision_023_53",
+      "penetration_mm": 2.705349993000844
+    },
+    {
+      "geom": "collision_023_55",
+      "penetration_mm": 3.631945405389067
+    },
+    {
+      "geom": "collision_023_55",
+      "penetration_mm": 3.623827843615826
+    },
+    {
+      "geom": "collision_023_56",
+      "penetration_mm": 0.19707756200293414
+    },
+    {
+      "geom": "collision_023_56",
+      "penetration_mm": 0.19707762630660763
+    },
+    {
+      "geom": "collision_023_58",
+      "penetration_mm": 3.906682742113282
+    },
+    {
+      "geom": "collision_023_58",
+      "penetration_mm": 3.9063550579665485
+    },
+    {
+      "geom": "collision_023_59",
+      "penetration_mm": 1.0828046025769724
+    },
+    {
+      "geom": "collision_023_60",
+      "penetration_mm": 3.1549941436699456
+    },
+    {
+      "geom": "collision_023_61",
+      "penetration_mm": 1.2728372242620523
+    },
+    {
+      "geom": "collision_023_61",
+      "penetration_mm": 1.2728372365398144
+    },
+    {
+      "geom": "collision_025_00",
+      "penetration_mm": 2.6169259890427155
+    },
+    {
+      "geom": "collision_025_01",
+      "penetration_mm": 2.9611183277299458
+    },
+    {
+      "geom": "collision_096_14",
+      "penetration_mm": 0.3408857245624555
+    },
+    {
+      "geom": "collision_096_15",
+      "penetration_mm": 0.7678778482076096
+    },
+    {
+      "geom": "collision_096_29",
+      "penetration_mm": 1.337027436326794
+    },
+    {
+      "geom": "collision_096_30",
+      "penetration_mm": 2.1810821490715524
+    },
+    {
+      "geom": "collision_096_30",
+      "penetration_mm": 2.2000226466423283
+    },
+    {
+      "geom": "collision_096_31",
+      "penetration_mm": 0.4819102874116639
+    },
+    {
+      "geom": "collision_096_43",
+      "penetration_mm": 2.154749127467613
+    },
+    {
+      "geom": "collision_096_44",
+      "penetration_mm": 2.0266852830569433
+    }
+  ],
+  "max_arm_tracking_error_deg": [
+    0.32783524917478307,
+    0.9744882648155067,
+    0.9597135428116581,
+    0.5502824589502936
+  ],
+  "peak_arm_torque_Nm": [
+    0.3365237166177518,
+    1.5,
+    1.1133109175553777,
+    0.5091221599094429
+  ],
+  "peak_micro_torque_Nm": [
+    0.06,
+    0.06,
+    0.06
+  ],
+  "peak_cable_tension_N": [
+    7.543439559251587,
+    7.573970138751572,
+    7.629605014326603
+  ],
+  "hold_arm_saturation_fraction": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "hold_micro_saturation_fraction": [
+    0.0,
+    0.6425,
+    0.6438333333333334
+  ],
+  "max_spool_speed_rad_s": [
+    55.9622002282702,
+    75.02022649856231,
+    70.61386159435634
+  ],
+  "peak_load_scope": "Entire integrated cycle, including fixture-assisted closing; torque fields use actual actuator_force.",
+  "postrelease_peak_arm_torque_Nm": [
+    0.2835596910024403,
+    1.5,
+    1.1133109175553777,
+    0.5091221599094429
+  ],
+  "postrelease_peak_micro_torque_Nm": [
+    0.06,
+    0.06,
+    0.06
+  ],
+  "postrelease_peak_cable_tension_N": [
+    7.499379905187378,
+    7.573970138751572,
+    7.629605014326603
+  ],
+  "postrelease_max_spool_speed_rad_s": [
+    55.9622002282702,
+    75.02022649856231,
+    70.61386159435634
+  ],
+  "hold_finger_contact_fraction": [
+    0.015666666666666666,
+    0.6408333333333334,
+    0.6393333333333333
+  ],
+  "hold_gripper_contact_fraction": 0.6428333333333334,
+  "hold_two_finger_contact_fraction": 0.6373333333333333,
+  "hold_pad_contact_fraction": 0.6393333333333333,
+  "mean_hold_object_contact_vertical_N": 1.0447661417513978,
+  "external_support_contact_geoms": [
+    "collision_240_00",
+    "floor"
+  ],
+  "palm_cradle_contact": true,
+  "max_cable_energy_balance_residual_W": 1.0506732203013902e-15,
+  "warnings": {},
+  "invalid_reason": "",
+  "postrelease_max_cable_energy_balance_residual_W": 1.0506732203013902e-15,
+  "maximum_joint_limit_overshoot_deg": 2.7626382550159754,
+  "joint_limit_overshoot_deg": {
+    "yaw_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "shoulder_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "elbow_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "wrist_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "finger_1_proximal_joint": {
+      "below_lower_deg": 0.8328510304316479,
+      "above_upper_deg": 0.17620288624769756,
+      "maximum_deg": 0.8328510304316479
+    },
+    "finger_1_distal_joint": {
+      "below_lower_deg": 2.3921177019917974,
+      "above_upper_deg": 0.39325247828707777,
+      "maximum_deg": 2.3921177019917974
+    },
+    "finger_2_proximal_joint": {
+      "below_lower_deg": 0.7815011268546797,
+      "above_upper_deg": 1.32407854134282,
+      "maximum_deg": 1.32407854134282
+    },
+    "finger_2_distal_joint": {
+      "below_lower_deg": 2.7626382550159754,
+      "above_upper_deg": 2.262309220299741,
+      "maximum_deg": 2.7626382550159754
+    },
+    "finger_3_proximal_joint": {
+      "below_lower_deg": 0.6636707082056836,
+      "above_upper_deg": 1.3735789249350756,
+      "maximum_deg": 1.3735789249350756
+    },
+    "finger_3_distal_joint": {
+      "below_lower_deg": 1.854783659255757,
+      "above_upper_deg": 1.7332408219218862,
+      "maximum_deg": 1.854783659255757
+    },
+    "finger_1_spool_joint": {
+      "below_lower_deg": 0.00023756030938131546,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.00023756030938131546
+    },
+    "finger_2_spool_joint": {
+      "below_lower_deg": 7.450298405798192e-05,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 7.450298405798192e-05
+    },
+    "finger_3_spool_joint": {
+      "below_lower_deg": 9.552900970109302e-05,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 9.552900970109302e-05
+    }
+  },
+  "joint_limit_tolerance_deg": 0.5,
+  "max_payload_free_dof_qfrc_applied_abs": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "payload_free_dof_qfrc_units": [
+    "N",
+    "N",
+    "N",
+    "Nm",
+    "Nm",
+    "Nm"
+  ],
+  "fixture_max_position_deviation_mm": 0.007060120119915319,
+  "fixture_max_orientation_deviation_deg": 0.07762873579160093,
+  "release_time_s": 2.500000000000002,
+  "release_position_deviation_mm": 0.004056495804473461,
+  "release_orientation_deviation_deg": 0.050716864616770455,
+  "release_linear_velocity_world_m_s": [
+    2.3122081048511947e-06,
+    -8.303165318812125e-08,
+    2.1671106339152796e-06
+  ],
+  "release_angular_velocity_world_rad_s": [
+    -0.003445483602801851,
+    0.00036008006910855366,
+    0.001589451213964348
+  ],
+  "completed_hold_duration_s": 2.999999999998286,
+  "completed_integration_steps": 16000,
+  "geometry_observation_count": 16001,
+  "hold_step_observations": 6000,
+  "criteria_observation_cadence_s": 0.0005,
+  "telemetry_cadence_s": 0.01,
+  "simulation_seconds": 7.999999999998286,
+  "wall_seconds": 16.5,
+  "scope": "Unmeasured-parameter conditional experiment. Initial fixture only aids prepositioning; all pose motion after initialization comes from mj_step integration. Slips, support contacts, penetration and joint-limit overshoot checked every integration step plus final endpoint. Ideal frictionless cable guides; finger frictionloss is an explicit unmeasured joint-friction scenario. No thermal/structural validation."
+}

@@ -1,0 +1,262 @@
+{
+  "name": "sphere_baseline_z60",
+  "status": "FAIL",
+  "model_file": "PNJEX_sphere_axial_mass1_z60_fast.xml",
+  "model_sha256": "e45c8f92b043897bb04d3f8c5a6116d39192ef09f9e1447178265e14eadd57fd",
+  "mujoco_version": "4.0.0",
+  "parameters": {
+    "name": "sphere_baseline_z60",
+    "dt": 0.0005,
+    "friction": 0.5,
+    "arm_cap_Nm": 1.5,
+    "micro_cap_Nm": 0.06,
+    "cable_stiffness_N_m": 1500,
+    "cable_damping_Ns_m": 0.1,
+    "cable_slack_m": 0.001,
+    "spring_scale": 1.0,
+    "preload_delta_deg": 0.0,
+    "finger_damping_Nms": 0.0003,
+    "finger_frictionloss_Nm": 0.0,
+    "spool_armature_kgm2": 1e-06,
+    "contact_timeconst_s": 0.006,
+    "contact_dampratio": 1.0,
+    "wind_angle_rad": 1.6,
+    "arm_kp": 50.0,
+    "arm_kd": 0.6,
+    "spool_kp": 0.4,
+    "spool_kd": 0.0015,
+    "gravity_compensation": true,
+    "release_s": 2.5,
+    "lift_start_s": 3.0,
+    "lift_end_s": 5.0,
+    "end_s": 8.0,
+    "close_start_s": 0.3,
+    "close_end_s": 2.2,
+    "disturb_N": 0.0
+  },
+  "object": {
+    "shape": "sphere",
+    "mass_kg": 0.1,
+    "diameter_m": 0.06,
+    "height_m": null,
+    "orientation": "axial",
+    "object_palm_z_m": 0.06,
+    "print_mass_scale": 1.0
+  },
+  "criteria": {
+    "finite_without_engine_warnings": true,
+    "fixture_permanently_released": true,
+    "initial_placement_clear": true,
+    "minimum_hold_lift_at_least_50mm": false,
+    "slip_from_release_at_most_5mm": false,
+    "hold_slip_at_most_5mm": false,
+    "no_external_support_contact": false,
+    "continuous_gripper_contact": false,
+    "two_moving_fingers_contact": false,
+    "pad_contact_through_hold": false,
+    "penetration_at_most_0p8mm": false,
+    "robot_penetration_at_most_1mm": true,
+    "full_cycle_object_penetration_at_most_0p8mm": false,
+    "all_joint_limit_overshoot_at_most_0p5deg": false,
+    "no_direct_generalized_force_on_payload": true,
+    "arm_tracking_error_at_most_3deg": true,
+    "full_three_second_hold": true
+  },
+  "minimum_hold_lift_mm": -59.87912162899345,
+  "max_slip_from_release_mm": 185.0912256569936,
+  "max_hold_slip_mm": 121.7261292307191,
+  "max_object_penetration_mm": 2.4162551175825815,
+  "max_robot_penetration_mm": 0.0,
+  "max_object_penetration_postrelease_mm": 2.4162551175825815,
+  "max_object_penetration_full_cycle_mm": 2.4162551175825815,
+  "initial_object_penetration_mm": 0.0,
+  "initial_placement_tolerance_mm": 0.1,
+  "initial_placement_contacts": [],
+  "max_arm_tracking_error_deg": [
+    0.08678200909891831,
+    0.3305087680959758,
+    0.3953519264519324,
+    0.25000712921143214
+  ],
+  "peak_arm_torque_Nm": [
+    0.09007306284311914,
+    1.168531033518556,
+    1.0714690880696662,
+    0.5660608346694366
+  ],
+  "peak_micro_torque_Nm": [
+    0.06,
+    0.06,
+    0.06
+  ],
+  "peak_cable_tension_N": [
+    7.600800477853868,
+    7.630912185947736,
+    7.610763463355088
+  ],
+  "hold_arm_saturation_fraction": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "hold_micro_saturation_fraction": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "max_spool_speed_rad_s": [
+    8.459309942242516,
+    11.790353029468768,
+    8.954193712083978
+  ],
+  "peak_load_scope": "Entire integrated cycle, including fixture-assisted closing; torque fields use actual actuator_force.",
+  "postrelease_peak_arm_torque_Nm": [
+    0.09007306284311914,
+    1.168531033518556,
+    1.0714690880696662,
+    0.5660608346694366
+  ],
+  "postrelease_peak_micro_torque_Nm": [
+    0.06,
+    0.06,
+    0.06
+  ],
+  "postrelease_peak_cable_tension_N": [
+    7.600800477853868,
+    7.630912185947736,
+    7.610763463355088
+  ],
+  "postrelease_max_spool_speed_rad_s": [
+    8.459309942242516,
+    11.790353029468768,
+    8.954193712083978
+  ],
+  "hold_finger_contact_fraction": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "hold_gripper_contact_fraction": 0.0,
+  "hold_two_finger_contact_fraction": 0.0,
+  "hold_pad_contact_fraction": 0.0,
+  "mean_hold_object_contact_vertical_N": 0.980665,
+  "external_support_contact_geoms": [
+    "collision_240_00",
+    "floor"
+  ],
+  "palm_cradle_contact": true,
+  "max_cable_energy_balance_residual_W": 3.469446951953614e-16,
+  "warnings": {},
+  "invalid_reason": "",
+  "postrelease_max_cable_energy_balance_residual_W": 3.469446951953614e-16,
+  "maximum_joint_limit_overshoot_deg": 0.9391417709742892,
+  "joint_limit_overshoot_deg": {
+    "yaw_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "shoulder_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "elbow_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "wrist_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "finger_1_proximal_joint": {
+      "below_lower_deg": 0.07493063092380889,
+      "above_upper_deg": 0.7273897910433557,
+      "maximum_deg": 0.7273897910433557
+    },
+    "finger_1_distal_joint": {
+      "below_lower_deg": 0.5156417056689593,
+      "above_upper_deg": 0.9140504266241255,
+      "maximum_deg": 0.9140504266241255
+    },
+    "finger_2_proximal_joint": {
+      "below_lower_deg": 0.10642371925544078,
+      "above_upper_deg": 0.6674085441497604,
+      "maximum_deg": 0.6674085441497604
+    },
+    "finger_2_distal_joint": {
+      "below_lower_deg": 0.21344373813197956,
+      "above_upper_deg": 0.6396738015659892,
+      "maximum_deg": 0.6396738015659892
+    },
+    "finger_3_proximal_joint": {
+      "below_lower_deg": 0.11280746376687216,
+      "above_upper_deg": 0.9391417709742892,
+      "maximum_deg": 0.9391417709742892
+    },
+    "finger_3_distal_joint": {
+      "below_lower_deg": 0.2134846176903921,
+      "above_upper_deg": 0.87994903586135,
+      "maximum_deg": 0.87994903586135
+    },
+    "finger_1_spool_joint": {
+      "below_lower_deg": 8.188697014335176e-05,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 8.188697014335176e-05
+    },
+    "finger_2_spool_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    },
+    "finger_3_spool_joint": {
+      "below_lower_deg": 0.0,
+      "above_upper_deg": 0.0,
+      "maximum_deg": 0.0
+    }
+  },
+  "joint_limit_tolerance_deg": 0.5,
+  "max_payload_free_dof_qfrc_applied_abs": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "payload_free_dof_qfrc_units": [
+    "N",
+    "N",
+    "N",
+    "Nm",
+    "Nm",
+    "Nm"
+  ],
+  "fixture_max_position_deviation_mm": 0.001653861124528885,
+  "fixture_max_orientation_deviation_deg": 0.0035638311956767265,
+  "release_time_s": 2.500000000000002,
+  "release_position_deviation_mm": 0.0016367780511898928,
+  "release_orientation_deviation_deg": 0.00046994791353902315,
+  "release_linear_velocity_world_m_s": [
+    1.5108629925342405e-08,
+    -2.3094317441547843e-08,
+    3.973144092120868e-08
+  ],
+  "release_angular_velocity_world_rad_s": [
+    -2.7127504162345877e-06,
+    -1.4692689199665894e-05,
+    -4.5778564906845e-06
+  ],
+  "completed_hold_duration_s": 2.999999999998286,
+  "completed_integration_steps": 16000,
+  "geometry_observation_count": 16001,
+  "hold_step_observations": 6000,
+  "criteria_observation_cadence_s": 0.0005,
+  "telemetry_cadence_s": 0.01,
+  "simulation_seconds": 7.999999999998286,
+  "wall_seconds": 42.969000000011874,
+  "scope": "Unmeasured-parameter conditional experiment. Initial fixture only aids prepositioning; all pose motion after initialization comes from mj_step integration. Slips, support contacts, penetration and joint-limit overshoot checked every integration step plus final endpoint. Ideal frictionless cable guides; finger frictionloss is an explicit unmeasured joint-friction scenario. No thermal/structural validation."
+}

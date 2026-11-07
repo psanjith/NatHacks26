@@ -1,0 +1,839 @@
+{
+  "scope": "Ten full 8-second dynamic scenarios, one variable at a time, starting from axial 100 g cylinder z60, winding 1.2 rad, pad friction 0.5. Unmeasured-parameter scenarios; not hardware certification.",
+  "model_file": "outputs\\PNJEX_MuJoCo_Physics\\models\\PNJEX_cylinder_axial_mass1_z60_fast_lite.xml",
+  "reference_parameters": {
+    "name": "cylinder_range_reference_parameters",
+    "dt": 0.0005,
+    "friction": 0.5,
+    "arm_cap_Nm": 1.5,
+    "micro_cap_Nm": 0.06,
+    "cable_stiffness_N_m": 1500,
+    "cable_damping_Ns_m": 0.1,
+    "cable_slack_m": 0.001,
+    "spring_scale": 1.0,
+    "preload_delta_deg": 0.0,
+    "finger_damping_Nms": 0.0003,
+    "finger_frictionloss_Nm": 0.0,
+    "spool_armature_kgm2": 1e-06,
+    "contact_timeconst_s": 0.006,
+    "contact_dampratio": 1.0,
+    "wind_angle_rad": 1.2,
+    "arm_kp": 50.0,
+    "arm_kd": 0.6,
+    "spool_kp": 0.4,
+    "spool_kd": 0.0015,
+    "gravity_compensation": true,
+    "release_s": 2.5,
+    "lift_start_s": 3.0,
+    "lift_end_s": 5.0,
+    "end_s": 8.0,
+    "close_start_s": 0.3,
+    "close_end_s": 2.2,
+    "disturb_N": 0.0
+  },
+  "reference_result_for_context": "outputs/PNJEX_MuJoCo_Physics/results/cylinder_sweep_w12_mu05.json; not rerun as an eleventh case here.",
+  "source_sha256_before": {
+    "work\\mujoco_physics\\simulate.py": "824ab4a794411e8b1b4b1f6bd7712f5f8b01c178423dae9d6a0934978254ec19",
+    "work\\mujoco_physics\\physics_model.py": "b7924785bf167bc486b50be70a1559b3e9aae223478ca64337afc90d952fc67a",
+    "work\\mujoco_physics\\tendon_forces.py": "f78382ba26a5404142cb058f9b9f53c0ed0774933c376d820ade2842fa51a39a",
+    "outputs\\PNJEX_MuJoCo_Physics\\models\\PNJEX_cylinder_axial_mass1_z60_fast_lite.xml": "296c031103b19dc7d50d9046995884979f6c11550f25eda9ec7bb95b10363034",
+    "outputs\\PNJEX_MuJoCo_Physics\\models\\PNJEX_cylinder_axial_mass1_z60_fast_lite.json": "08b55af3dc8f82e3417c0ac3f69518251603b2a096f9e3e137dce991a23d9acd"
+  },
+  "requested_cases": 10,
+  "completed_cases": 10,
+  "records": [
+    {
+      "name": "cylinder_range_spring_scale_0p8",
+      "varied_parameter": "spring_scale",
+      "value": 0.8,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 52.884541507333374,
+      "max_slip_from_release_mm": 15.91934348762479,
+      "max_hold_slip_mm": 0.8424147086884698,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.38534567077198434,
+      "max_object_penetration_full_cycle_mm": 0.6798255621688607,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.21400445394621287,
+      "peak_arm_torque_Nm": [
+        0.06452085319175525,
+        1.1602294834277935,
+        0.8143825349563649,
+        0.35552180743762896
+      ],
+      "peak_micro_torque_Nm": [
+        0.059708044804613086,
+        0.06,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        7.463481210859946,
+        7.734694667833522,
+        7.735523602572217
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.06452085319175525,
+        1.1602294834277935,
+        0.8143825349563649,
+        0.35552180743762896
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.05967991991268641,
+        0.06,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        7.459953822190052,
+        7.734694667833522,
+        7.735523602572217
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9803408113468902,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_spring_scale_0p8.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_spring_scale_0p8_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_spring_scale_0p8_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_spring_scale_1p2",
+      "varied_parameter": "spring_scale",
+      "value": 1.2,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 51.70741472549626,
+      "max_slip_from_release_mm": 16.82954924402143,
+      "max_hold_slip_mm": 1.0022194252802177,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.3212191223239404,
+      "max_object_penetration_full_cycle_mm": 0.6226361163425917,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.2681311307533838,
+      "peak_arm_torque_Nm": [
+        0.05028284638377039,
+        1.1681844193970392,
+        0.8242376589915366,
+        0.36667872326867756
+      ],
+      "peak_micro_torque_Nm": [
+        0.05993880249638557,
+        0.06,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        7.492323214429948,
+        7.690639977404245,
+        7.690949289127897
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.05028284638377039,
+        1.1681844193970392,
+        0.8242376589915366,
+        0.36667872326867756
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.05987199483356642,
+        0.06,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        7.483961850313302,
+        7.690639977404245,
+        7.690949289127897
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9805495613089567,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_spring_scale_1p2.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_spring_scale_1p2_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_spring_scale_1p2_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_preload_delta_deg_minus8",
+      "varied_parameter": "preload_delta_deg",
+      "value": -8.0,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 52.23619206451188,
+      "max_slip_from_release_mm": 16.50264043790055,
+      "max_hold_slip_mm": 1.3312203510771983,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.3879423640938266,
+      "max_object_penetration_full_cycle_mm": 0.7055122067735714,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.18523764218911923,
+      "peak_arm_torque_Nm": [
+        0.06342143256044798,
+        1.1600759588318998,
+        0.8146087158437139,
+        0.3584970719466978
+      ],
+      "peak_micro_torque_Nm": [
+        0.059753921237326445,
+        0.06,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        7.4692154242221855,
+        7.735219207136872,
+        7.7362213014551555
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.06342143256044798,
+        1.1600759588318998,
+        0.8146087158437139,
+        0.3584970719466978
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.059712209320846865,
+        0.06,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        7.463989516778068,
+        7.735219207136872,
+        7.7362213014551555
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9807325037144385,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_preload_delta_deg_minus8.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_preload_delta_deg_minus8_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_preload_delta_deg_minus8_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_preload_delta_deg_plus8",
+      "varied_parameter": "preload_delta_deg",
+      "value": 8.0,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 52.421365549965614,
+      "max_slip_from_release_mm": 16.169771904083586,
+      "max_hold_slip_mm": 0.8951946901015834,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.3394709405339168,
+      "max_object_penetration_full_cycle_mm": 0.5431419330448798,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.3153952420395188,
+      "peak_arm_torque_Nm": [
+        0.05450859226852558,
+        1.1764270574902538,
+        0.8283353731526015,
+        0.3683270776749622
+      ],
+      "peak_micro_torque_Nm": [
+        0.059923204133924345,
+        0.06,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        7.490373715687319,
+        7.690025738207741,
+        7.683807625108358
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.05450859226852558,
+        1.1764270574902538,
+        0.8283353731526015,
+        0.3683270776749622
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.0598586298073197,
+        0.06,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        7.482291279299269,
+        7.690025738207741,
+        7.683807625108358
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.980684469818337,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_preload_delta_deg_plus8.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_preload_delta_deg_plus8_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_preload_delta_deg_plus8_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_cable_stiffness_N_m_500",
+      "varied_parameter": "cable_stiffness_N_m",
+      "value": 500.0,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "minimum_hold_lift_at_least_50mm",
+        "slip_from_release_at_most_5mm",
+        "all_joint_limit_overshoot_at_most_0p5deg"
+      ],
+      "minimum_hold_lift_mm": 38.66839239124581,
+      "max_slip_from_release_mm": 29.701920846683617,
+      "max_hold_slip_mm": 2.553570443136972,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.4670245590939514,
+      "max_object_penetration_full_cycle_mm": 0.6423258254716555,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 1.0252101946066492,
+      "peak_arm_torque_Nm": [
+        0.07183713350439104,
+        1.3806790939667906,
+        1.0119476459472678,
+        0.4640743815625825
+      ],
+      "peak_micro_torque_Nm": [
+        0.026258555335454827,
+        0.032374240265200735,
+        0.03225473056613616
+      ],
+      "peak_cable_tension_N": [
+        3.2820062403671244,
+        4.046471043593212,
+        4.031846064883753
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.07183713350439104,
+        1.3806790939667906,
+        1.0119476459472678,
+        0.4640743815625825
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.025967695153594237,
+        0.032374240265200735,
+        0.03225473056613616
+      ],
+      "postrelease_peak_cable_tension_N": [
+        3.245926599160166,
+        4.046471043593212,
+        4.031846064883753
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9812446148472053,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_stiffness_N_m_500.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_stiffness_N_m_500_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_stiffness_N_m_500_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_cable_stiffness_N_m_5000",
+      "varied_parameter": "cable_stiffness_N_m",
+      "value": 5000.0,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 52.842419734482114,
+      "max_slip_from_release_mm": 17.618713596499784,
+      "max_hold_slip_mm": 0.5304805533287176,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.3802738918425808,
+      "max_object_penetration_full_cycle_mm": 0.6423258254716555,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.2344170840879917,
+      "peak_arm_torque_Nm": [
+        0.11056725890944573,
+        1.2100959633832367,
+        0.8461141585650236,
+        0.3760647391343743
+      ],
+      "peak_micro_torque_Nm": [
+        0.06,
+        0.06,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        7.542657627294736,
+        8.229182835486792,
+        8.18670563925054
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.11056725890944573,
+        1.2100959633832367,
+        0.8461141585650236,
+        0.3760647391343743
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.06,
+        0.06,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        7.501581537152514,
+        8.229182835486792,
+        8.18670563925054
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9806232948998752,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_stiffness_N_m_5000.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_stiffness_N_m_5000_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_stiffness_N_m_5000_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_cable_slack_m_0",
+      "varied_parameter": "cable_slack_m",
+      "value": 0.0,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 53.213892118991396,
+      "max_slip_from_release_mm": 16.364202726083132,
+      "max_hold_slip_mm": 0.3818693391974342,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.3487487392323484,
+      "max_object_penetration_full_cycle_mm": 0.6639814528090918,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.23482298477189034,
+      "peak_arm_torque_Nm": [
+        0.07732057844273095,
+        1.19796089143865,
+        0.8387961912705055,
+        0.36301894978838406
+      ],
+      "peak_micro_torque_Nm": [
+        0.06,
+        0.06,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        7.518693619133222,
+        7.7023654006588,
+        7.702195667467796
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.07732057844273095,
+        1.19796089143865,
+        0.8387961912705055,
+        0.36301894978838406
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.06,
+        0.06,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        7.50009873469979,
+        7.7023654006588,
+        7.702195667467796
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9806897120857434,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_slack_m_0.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_slack_m_0_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_slack_m_0_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_cable_slack_m_0p002",
+      "varied_parameter": "cable_slack_m",
+      "value": 0.002,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 54.9300730681193,
+      "max_slip_from_release_mm": 14.420124090484293,
+      "max_hold_slip_mm": 0.21126989753555567,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.2818476496350849,
+      "max_object_penetration_full_cycle_mm": 0.6423258254716555,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.2344170840879917,
+      "peak_arm_torque_Nm": [
+        0.040391461749504226,
+        1.1622087760656694,
+        0.827400471425713,
+        0.3676975315138068
+      ],
+      "peak_micro_torque_Nm": [
+        0.05033530609659694,
+        0.05956748953062583,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        6.291889733746961,
+        7.445900565726688,
+        7.537860416399603
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.040391461749504226,
+        1.1622087760656694,
+        0.827400471425713,
+        0.3676975315138068
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.050319832559324464,
+        0.05956748953062583,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        6.2899448497322865,
+        7.445900565726688,
+        7.537860416399603
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9805891925425142,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_slack_m_0p002.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_slack_m_0p002_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_cable_slack_m_0p002_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_finger_frictionloss_Nm_0p001",
+      "varied_parameter": "finger_frictionloss_Nm",
+      "value": 0.001,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 53.57545568820556,
+      "max_slip_from_release_mm": 15.259832897085655,
+      "max_hold_slip_mm": 0.7774168369450732,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.3449749994519696,
+      "max_object_penetration_full_cycle_mm": 0.5591478758470728,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.22987637966114394,
+      "peak_arm_torque_Nm": [
+        0.044715436786757275,
+        1.1453410547751954,
+        0.8119522288600438,
+        0.3466964471865559
+      ],
+      "peak_micro_torque_Nm": [
+        0.05986890033325169,
+        0.06,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        7.483585759116558,
+        7.707711009648099,
+        7.708806571581729
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.044715436786757275,
+        1.1453410547751954,
+        0.8119522288600438,
+        0.3466964471865559
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.059803555506944814,
+        0.06,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        7.475406951436786,
+        7.707711009648099,
+        7.708806571581729
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9803460570567537,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_finger_frictionloss_Nm_0p001.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_finger_frictionloss_Nm_0p001_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_finger_frictionloss_Nm_0p001_telemetry.csv"
+    },
+    {
+      "name": "cylinder_range_finger_frictionloss_Nm_0p003",
+      "varied_parameter": "finger_frictionloss_Nm",
+      "value": 0.003,
+      "status": "FAIL",
+      "initial_placement_valid": true,
+      "interpretation": "Valid initial placement; interpret the retained simulation criteria.",
+      "failed_criteria": [
+        "slip_from_release_at_most_5mm"
+      ],
+      "minimum_hold_lift_mm": 53.58046556058943,
+      "max_slip_from_release_mm": 15.228701607282307,
+      "max_hold_slip_mm": 0.875118429609681,
+      "initial_object_penetration_mm": 0.0,
+      "max_object_penetration_postrelease_mm": 0.3849048923090652,
+      "max_object_penetration_full_cycle_mm": 0.3849048923090652,
+      "max_robot_penetration_mm": 0.0,
+      "maximum_joint_limit_overshoot_deg": 0.2016436342573952,
+      "peak_arm_torque_Nm": [
+        0.03231802685891455,
+        1.146795680155208,
+        0.8162129532600471,
+        0.34840794888392645
+      ],
+      "peak_micro_torque_Nm": [
+        0.05991593563579087,
+        0.06,
+        0.06
+      ],
+      "peak_cable_tension_N": [
+        7.489461595546959,
+        7.700110317977255,
+        7.701309878616906
+      ],
+      "postrelease_peak_arm_torque_Nm": [
+        0.03231802685891455,
+        1.146795680155208,
+        0.8162129532600471,
+        0.34840794888392645
+      ],
+      "postrelease_peak_micro_torque_Nm": [
+        0.05983046194902443,
+        0.06,
+        0.06
+      ],
+      "postrelease_peak_cable_tension_N": [
+        7.478769571682598,
+        7.700110317977255,
+        7.701309878616906
+      ],
+      "hold_arm_saturation_fraction": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold_micro_saturation_fraction": [
+        0.0,
+        1.0,
+        1.0
+      ],
+      "mean_hold_object_contact_vertical_N": 0.9808352118781529,
+      "external_support_contact_geoms": [],
+      "hold_finger_contact_fraction": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "palm_cradle_contact": false,
+      "simulation_seconds": 7.999999999998286,
+      "completed_integration_steps": 16000,
+      "geometry_observation_count": 16001,
+      "completed_hold_duration_s": 2.999999999998286,
+      "warnings": {},
+      "result_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_finger_frictionloss_Nm_0p003.json",
+      "trajectory_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_finger_frictionloss_Nm_0p003_trajectory.npz",
+      "telemetry_file": "outputs\\PNJEX_MuJoCo_Physics\\results\\cylinder_range_finger_frictionloss_Nm_0p003_telemetry.csv"
+    }
+  ],
+  "elapsed_wall_seconds": 165.21799999999348,
+  "source_sha256_after": {
+    "work\\mujoco_physics\\simulate.py": "824ab4a794411e8b1b4b1f6bd7712f5f8b01c178423dae9d6a0934978254ec19",
+    "work\\mujoco_physics\\physics_model.py": "b7924785bf167bc486b50be70a1559b3e9aae223478ca64337afc90d952fc67a",
+    "work\\mujoco_physics\\tendon_forces.py": "f78382ba26a5404142cb058f9b9f53c0ed0774933c376d820ade2842fa51a39a",
+    "outputs\\PNJEX_MuJoCo_Physics\\models\\PNJEX_cylinder_axial_mass1_z60_fast_lite.xml": "296c031103b19dc7d50d9046995884979f6c11550f25eda9ec7bb95b10363034",
+    "outputs\\PNJEX_MuJoCo_Physics\\models\\PNJEX_cylinder_axial_mass1_z60_fast_lite.json": "08b55af3dc8f82e3417c0ac3f69518251603b2a096f9e3e137dce991a23d9acd"
+  },
+  "source_files_unchanged_during_run": true,
+  "all_requested_cases_saved": true,
+  "all_runs_completed_8_seconds": true
+}
