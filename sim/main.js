@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import { OrbitControls } from "./vendor/OrbitControls.js";
-import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
 import { loadArm } from "./arm.js";
-import { buildObjects } from "./objects.js";
-import { buildCameraRig, buildTableCamera } from "./camera.js";
-import { buildWorld } from "./world.js";
+import { createKinematics } from "./kinematics.js";
+import { OBJECTS } from "./layout.js";
+import { scatterObjects } from "./objects.js";
+import { STATE_CHANNEL, armPose, createRenderer, createScene } from "./scene.js";
+import { createPickAndPlace } from "./task.js";
 
 // park (degrees) swings the arm to one side so the table camera sees every object.
 const ARM_JOINTS = [
@@ -13,29 +14,21 @@ const ARM_JOINTS = [
   { name: "elbow_joint", label: "Elbow", park: 25 },
   { name: "wrist_joint", label: "Wrist", park: 30 },
 ];
+const ARM_SPEED = 70; // degrees per second for animated moves
 const HOME_VIEW = { position: [0.3, -1.95, 1.25], target: [0.42, 0, 0.22] };
 
+const panel = document.querySelector(".panel");
 const loading = document.getElementById("loading");
 const loadingText = document.getElementById("loading-text");
 const sliders = document.getElementById("sliders");
 const cameraView = document.getElementById("camera-view");
+const taskStatus = document.getElementById("task-status");
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = createRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.95;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.getElementById("viewport").append(renderer.domElement);
-
-// The whole scene uses the arm's frame (z up, metres), so no conversions are needed.
-const scene = new THREE.Scene();
-scene.background = new THREE.Color("#c9c7c2");
-const environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04);
-scene.environment = environment.texture;
-scene.environmentIntensity = 0.45;
-scene.environmentRotation.x = Math.PI / 2;
+const { scene, reachBand, tableCamera } = createScene(renderer);
+const objects = scene.getObjectByName("objects");
 
 const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.01, 30);
 camera.up.set(0, 0, 1);
@@ -49,18 +42,58 @@ controls.minDistance = 0.15;
 controls.maxDistance = 2.4;
 controls.maxPolarAngle = Math.PI * 0.53;
 
-const { group: world, reachBand } = buildWorld();
-const tableCamera = buildTableCamera();
-scene.add(world, buildObjects(), buildCameraRig(tableCamera));
-
 let needsRender = true;
 const requestRender = () => {
   needsRender = true;
   renderer.shadowMap.needsUpdate = true;
 };
-renderer.shadowMap.autoUpdate = false;
-controls.addEventListener("change", () => (needsRender = true));
 
+// Camera tabs (camera.html) mirror the arm and cubes through this channel.
+const channel = new BroadcastChannel(STATE_CHANNEL);
+let arm = null;
+let shownTargets = { targets: [], selected: null };
+const position = new THREE.Vector3();
+const rotation = new THREE.Quaternion();
+const size = new THREE.Vector3();
+function worldState() {
+  return {
+    joints: armPose(arm),
+    objects: OBJECTS.map(({ id }) => {
+      const cube = scene.getObjectByName(id);
+      cube.updateWorldMatrix(true, false);
+      cube.matrixWorld.decompose(position, rotation, size);
+      return { id, position: position.toArray(), quaternion: rotation.toArray() };
+    }),
+  };
+}
+const sendState = () => channel.postMessage({ type: "state", ...worldState() });
+// Sent right away rather than from the render loop, which the browser pauses
+// while this tab is in the background. Several changes in one go send one message.
+let stateQueued = false;
+const queueState = () => {
+  if (stateQueued || !arm) return;
+  stateQueued = true;
+  queueMicrotask(() => {
+    stateQueued = false;
+    sendState();
+  });
+};
+const worldChanged = () => {
+  queueState();
+  requestRender();
+};
+const publishTargets = (targets, selected) => {
+  shownTargets = { targets, selected };
+  channel.postMessage({ type: "targets", ...shownTargets });
+};
+channel.onmessage = ({ data }) => {
+  if (data.type === "request-state" && arm) {
+    sendState();
+    channel.postMessage({ type: "targets", ...shownTargets });
+  }
+};
+
+controls.addEventListener("change", () => (needsRender = true));
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -98,22 +131,41 @@ function addSlider({ label, min, max, value, unit, onInput }) {
   input.min = min;
   input.max = max;
   input.step = 1;
+  let current = value;
 
   const set = (next) => {
-    input.value = next;
-    output.textContent = `${Math.round(next)}${unit}`;
-    onInput(Number(next));
-    requestRender();
+    current = Number(next);
+    input.value = current;
+    output.textContent = `${Math.round(current)}${unit}`;
+    onInput(current);
+    worldChanged();
   };
   input.addEventListener("input", () => set(input.value));
   row.append(name, output, input);
   sliders.append(row);
   set(value);
-  return { set, reset: () => set(value) };
+  return { set, get: () => current, reset: () => set(value) };
+}
+
+// Steps animations by time. In a background tab (say, while the camera tab is in
+// front) the browser pauses animation frames and slows timers to about once a
+// second, so a small worker supplies ~60 ticks a second instead.
+const ticker = new Worker(URL.createObjectURL(new Blob(["setInterval(() => postMessage(0), 16);"], { type: "text/javascript" })));
+const tickWaiters = [];
+ticker.onmessage = () => tickWaiters.splice(0).forEach((resolve) => resolve());
+const nextFrame = () => new Promise((resolve) => (document.hidden ? tickWaiters.push(resolve) : requestAnimationFrame(resolve)));
+async function animate(duration, step) {
+  const start = performance.now();
+  for (;;) {
+    const k = Math.min(1, (performance.now() - start) / duration);
+    step(k);
+    if (k >= 1) return;
+    await nextFrame();
+  }
 }
 
 async function start() {
-  const arm = await loadArm((fraction) => {
+  arm = await loadArm((fraction) => {
     loadingText.textContent = `Loading arm ${Math.round(fraction * 100)}%`;
   });
   scene.add(arm.root);
@@ -134,11 +186,66 @@ async function start() {
     onInput: (percent) => arm.setClaw(percent / 100),
   }));
 
+  // Moves the four joints (degrees) and/or the claw (percent) smoothly.
+  async function moveArm(angles, clawPercent = null) {
+    const from = controlsList.map((control) => control.get());
+    const to = from.slice();
+    if (angles) angles.forEach((value, i) => (to[i] = value));
+    if (clawPercent !== null) to[4] = clawPercent;
+    const jointSpan = Math.max(...to.slice(0, 4).map((value, i) => Math.abs(value - from[i])));
+    const clawMoves = Math.abs(to[4] - from[4]) > 0.5;
+    const duration = Math.max(jointSpan / ARM_SPEED * 1000, clawMoves ? 450 : 0, 250);
+    await animate(duration, (k) => {
+      const eased = k * k * (3 - 2 * k);
+      to.forEach((value, i) => controlsList[i].set(from[i] + (value - from[i]) * eased));
+    });
+  }
+  const park = () => moveArm(ARM_JOINTS.map(({ park }) => park));
+
+  const kinematics = createKinematics(arm);
+  const task = createPickAndPlace({
+    arm, kinematics, renderer, scene, camera: tableCamera, objects,
+    moveArm, park, animate, worldChanged, publishTargets,
+    setStatus: (text) => (taskStatus.textContent = text),
+  });
+
+  let busy = false;
+  const runTask = async (job) => {
+    if (busy) return null;
+    busy = true;
+    panel.classList.add("busy");
+    panel.querySelectorAll("button, input").forEach((element) => (element.disabled = true));
+    try {
+      return await job();
+    } catch (error) {
+      console.error(error);
+      taskStatus.textContent = `Something went wrong: ${error.message}`;
+      return { ok: false, reason: error.message };
+    } finally {
+      panel.querySelectorAll("button, input").forEach((element) => (element.disabled = false));
+      panel.classList.remove("busy");
+      busy = false;
+    }
+  };
+  const scatter = () => {
+    if (busy) return;
+    scatterObjects(objects);
+    publishTargets([], null);
+    taskStatus.textContent = "Cubes scattered";
+    worldChanged();
+  };
+  const pick = () => runTask(task.pickRandom);
+
   document.getElementById("home-pose").addEventListener("click", () => {
     controlsList.forEach((control) => control.reset());
   });
   document.getElementById("park-pose").addEventListener("click", () => {
-    ARM_JOINTS.forEach(({ park }, index) => controlsList[index].set(park));
+    ARM_JOINTS.forEach(({ park: angle }, index) => controlsList[index].set(angle));
+  });
+  document.getElementById("scatter").addEventListener("click", scatter);
+  document.getElementById("pick").addEventListener("click", pick);
+  document.getElementById("open-camera").addEventListener("click", () => {
+    window.open("camera.html", "pnjex-table-camera");
   });
   document.getElementById("reset-view").addEventListener("click", () => {
     camera.position.fromArray(HOME_VIEW.position);
@@ -151,7 +258,7 @@ async function start() {
   });
 
   // Console access for trying things out while the sim grows.
-  window.sim = { scene, camera, tableCamera, controls, arm, requestRender };
+  window.sim = { renderer, scene, camera, tableCamera, controls, arm, kinematics, task, requestRender, scatter, pick, moveArm };
   requestRender();
   loading.hidden = true;
 }

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { REACH, TABLE_Z } from "./layout.js";
+import { BASKET, MARKERS, MARKER_DIAMETER, REACH, TABLE_Z } from "./layout.js";
 
 export const TABLE = { minX: -0.3, maxX: 0.7, halfY: 0.65, thickness: 0.035, height: 0.74 };
 const ROOM = { halfSize: 2.6, height: 2.7, centerX: 0.2 };
@@ -118,10 +118,47 @@ function buildLights() {
   return group;
 }
 
+function buildMarkers() {
+  const group = new THREE.Group();
+  group.name = "calibration_markers";
+  const geometry = new THREE.CircleGeometry(MARKER_DIAMETER / 2, 40);
+  for (const marker of MARKERS) {
+    const sticker = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: marker.color, roughness: 0.6 }));
+    sticker.name = `marker_${marker.id}`;
+    sticker.position.set(marker.x, marker.y, 0.0004); // on top of the board
+    sticker.receiveShadow = true;
+    group.add(sticker);
+  }
+  return group;
+}
+
+function buildBasket() {
+  const group = new THREE.Group();
+  group.name = "basket";
+  const material = new THREE.MeshStandardMaterial({ color: "#34495e", roughness: 0.7 });
+  const { size, height, wall } = BASKET;
+  const parts = [
+    [size, size, wall, 0, 0, wall / 2],
+    [size, wall, height, 0, (size - wall) / 2, height / 2],
+    [size, wall, height, 0, -(size - wall) / 2, height / 2],
+    [wall, size, height, (size - wall) / 2, 0, height / 2],
+    [wall, size, height, -(size - wall) / 2, 0, height / 2],
+  ];
+  for (const [x, y, z, px, py, pz] of parts) {
+    const part = new THREE.Mesh(new THREE.BoxGeometry(x, y, z), material);
+    part.position.set(px, py, pz);
+    part.castShadow = true;
+    part.receiveShadow = true;
+    group.add(part);
+  }
+  group.position.set(BASKET.x, BASKET.y, TABLE_Z);
+  return group;
+}
+
 export function buildWorld() {
   const group = new THREE.Group();
   group.name = "world";
   const reachBand = buildReachBand();
-  group.add(buildRoom(), buildTable(), reachBand, buildLights());
+  group.add(buildRoom(), buildTable(), reachBand, buildLights(), buildMarkers(), buildBasket());
   return { group, reachBand };
 }

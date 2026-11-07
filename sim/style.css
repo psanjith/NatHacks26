@@ -39,6 +39,8 @@ html, body {
 }
 
 h1 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+h2 { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.task-status { min-height: 1.4em; margin: -4px 0 12px; color: var(--muted); font-size: 12px; }
 
 .slider {
   display: grid;
@@ -61,8 +63,6 @@ button {
   font: inherit;
   cursor: pointer;
 }
-
-.buttons .wide { grid-column: 1 / -1; }
 
 button:hover { background: rgba(255, 255, 255, 0.16); }
 
@@ -96,6 +96,49 @@ button:focus-visible, input:focus-visible {
   background: var(--panel);
   font-size: 12px;
 }
+
+.camera-page { background: #000; }
+.camera-page #viewport { display: grid; place-items: center; }
+.camera-page #viewport canvas { position: static; grid-area: 1 / 1; }
+.camera-page #viewport canvas.overlay { pointer-events: none; }
+
+.camera-toolbar {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 10px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  font-size: 13px;
+}
+
+.camera-toolbar .warning { color: #ffcf6e; }
+.camera-toolbar #detect-status { color: var(--muted); }
+button:disabled { opacity: 0.45; cursor: default; }
+
+.camera-status {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 13px;
+}
+
+.camera-status[hidden] { display: none; }
 
 #loading {
   position: fixed;
