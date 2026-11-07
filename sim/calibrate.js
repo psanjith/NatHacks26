@@ -102,6 +102,12 @@ function poseFromHomography(H, { f, cx, cy }) {
   return { R, t, center };
 }
 
+// The pixel where world point (x, y, z) appears.
+export function worldToPixel({ K, R, t }, x, y, z) {
+  const c = [0, 1, 2].map((i) => x * R[0][i] + y * R[1][i] + z * R[2][i] + t[i]);
+  return [K.f * c[0] / c[2] + K.cx, K.f * c[1] / c[2] + K.cy];
+}
+
 // The world point where pixel (u, v) meets the horizontal plane at height z.
 export function pixelToPlane({ K, R, center }, u, v, z) {
   const ray = [(u - K.cx) / K.f, (v - K.cy) / K.f, 1]; // camera coordinates

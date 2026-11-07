@@ -1,12 +1,12 @@
 # PNJEX browser sim
 
-A 3D table scene with the real PNJEX V6 arm model, four cubes, a basket and a table camera. "Pick random cube" picks a cube using only the camera image, then drops it in the basket. There is no physics: a cube counts as gripped when the claw closes within 2 cm of its centre.
+A 3D table scene with the real PNJEX V6 arm model, four cubes, a basket and a table camera. "Pick random cube" picks a cube using only the camera image, then drops it in the basket. Cubes are simulated with Rapier physics: they drop, tumble, get pushed by the arm and fall into the basket. A cube counts as held once two fingers touch it.
 
 ```bash
 python3 sim/run.py
 ```
 
-This serves the sim locally and opens it in a new Chrome tab. It needs only Python 3, and three.js is vendored in `vendor/`, so it works offline.
+This serves the sim locally and opens it in a new Chrome tab. It needs only Python 3. three.js and the Rapier physics engine are vendored in `vendor/`, so it works offline.
 
 | File | What it does |
 |---|---|
@@ -23,6 +23,7 @@ This serves the sim locally and opens it in a new Chrome tab. It needs only Pyth
 | `calibrate.js` | Works out the camera's position from the four board stickers, and turns pixels into table positions. |
 | `kinematics.js` | Forward and inverse kinematics for the arm's four joints. |
 | `task.js` | Pick and place: park, calibrate, detect, locate, plan, pick a random cube, drop it in the basket. |
+| `physics.js` | Rapier physics: table, board, basket, cubes, and the arm as moving collision shapes. |
 | `linalg.js` | Small linear-equation solver used by the two above. |
 
 The scene uses the arm's frame everywhere: x forward, y left, z up, in metres.

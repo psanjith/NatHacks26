@@ -170,7 +170,7 @@ function describe(points, width, height) {
   };
 }
 
-function convexHull(points) {
+export function convexHull(points) {
   const unique = [...new Map(points.map((p) => [`${p[0]},${p[1]}`, p])).values()];
   unique.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);

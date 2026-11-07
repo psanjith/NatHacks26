@@ -36,7 +36,7 @@ export const MARKERS = [
 // Open basket on the claw's side of the arm (the claw sits right of the arm's
 // centre line, so the arm reaches further to its right than its left), far
 // enough out that the claw can rise well above its rim.
-export const BASKET = { x: 0.05, y: -0.24, size: 0.1, height: 0.05, wall: 0.004 };
+export const BASKET = { x: 0.05, y: -0.24, size: 0.14, height: 0.05, wall: 0.004 }; // wider than the open claw
 
 // Where Scatter drops cubes: inside reach, in camera view, off the board,
 // clear of the basket and of each other. Closer than ~20 cm the arm can't

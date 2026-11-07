@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { calibrate, pixelToPlane } from "./calibrate.js";
-import { HEIGHT, WIDTH, captureFrame, detectObjects } from "./detect.js";
+import { calibrate, pixelToPlane, worldToPixel } from "./calibrate.js";
+import { HEIGHT, WIDTH, captureFrame, convexHull, detectObjects } from "./detect.js";
 import { BASKET, CUBE_SIZE, TABLE_Z } from "./layout.js";
 
 // Pick and place, using only what the table camera sees:
@@ -13,26 +13,45 @@ import { BASKET, CUBE_SIZE, TABLE_Z } from "./layout.js";
 const HOVER = [0.08, 0.07, 0.06, 0.05]; // above the cube's centre before descending
 const GRASP_RAISE = 0.008; // grip point slightly above the cube's centre
 const LIFT = [0.08, 0.07, 0.06, 0.05]; // lowest keeps a carried cube clear of 4 cm cubes
-const RELEASE_ABOVE_RIM = [0.06, 0.05, 0.04, 0.03]; // grip point; the cube hangs ~2 cm below it
-const GRIP_CLAW = 60; // percent closed when holding a cube
+const RELEASE_ABOVE_RIM = [0.05, 0.045, 0.04, 0.035]; // grip point; keeps the fingertips above cubes already in the basket
+const RETREAT_ABOVE_RIM = [0.08, 0.07, 0.06, 0.05]; // rise straight up before swinging away, so the claw doesn't drag through the basket
+const RELEASE_OPENING = 20; // after dropping, open the claw only this many percent past where it gripped
+const CLOSE_STEP = 2; // claw closes by this many percent per frame, until it grips
 const MAX_IK_ERROR = 0.005; // reject moves the arm can't reach within 5 mm
-const BASKET_SLOTS = [[-0.022, -0.022], [0.022, -0.022], [-0.022, 0.022], [0.022, 0.022]];
-
-// The sim has no physics, so a cube counts as gripped when the closing claw's
-// grip point is this close to the cube's real centre. Real positions are used
-// only for this check and for reporting accuracy, never for planning.
-const GRIP_TOLERANCE = { horizontal: 0.02, vertical: 0.03 };
+// Drop spots in the basket's corners (offsets from its centre), filled in turn by
+// how many cubes the camera already sees in the basket, so cubes don't land on
+// each other and tumble out.
+const BASKET_SPOTS = [[0.035, -0.035], [-0.035, -0.035], [0.035, 0.035], [0, 0]]; // the corner nearest the base is out of reach at this height
+// Real cube positions (from physics) are used only to report results, never to plan.
 
 export function createPickAndPlace({
-  arm, kinematics, renderer, scene, camera, objects,
-  moveArm, park, animate, worldChanged, publishTargets, setStatus,
+  kinematics, physics, renderer, scene, camera, objects,
+  moveArm, park, nextFrame, waitForRest, publishTargets, setClaw, setStatus,
 }) {
-  const palm = arm.root.getObjectByName("wrist_palm");
   const degrees = (angles) => angles.map((a) => THREE.MathUtils.radToDeg(a));
   let calibration = null;
 
   const inBasket = (x, y, margin = 0) =>
     Math.abs(x - BASKET.x) < BASKET.size / 2 + margin && Math.abs(y - BASKET.y) < BASKET.size / 2 + margin;
+
+  // The basket's outline in the camera image, from its known position.
+  function basketInImage() {
+    const corners = [];
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const z of [TABLE_Z, TABLE_Z + BASKET.height]) {
+      corners.push(worldToPixel(calibration, BASKET.x + sx * BASKET.size / 2, BASKET.y + sy * BASKET.size / 2, z));
+    }
+    return convexHull(corners);
+  }
+
+  function insidePolygon(x, y, polygon) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+      const [xi, yi] = polygon[i];
+      const [xj, yj] = polygon[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
 
   function calibrateCamera() {
     calibration = calibrate(captureFrame(renderer, scene, camera), camera.fov);
@@ -40,13 +59,14 @@ export function createPickAndPlace({
   }
 
   // Joint angles for each stop, or null if the arm can't reach one of them.
-  function plan(point) {
+  function plan(point, drop) {
     const rimZ = TABLE_Z + BASKET.height;
     const stops = [
       ["hover", point.x, point.y, HOVER.map((h) => point.z + h)],
       ["grasp", point.x, point.y, [point.z + GRASP_RAISE]],
       ["lift", point.x, point.y, LIFT.map((h) => point.z + h)],
-      ["release", BASKET.x, BASKET.y, RELEASE_ABOVE_RIM.map((h) => rimZ + h)],
+      ["release", drop.x, drop.y, RELEASE_ABOVE_RIM.map((h) => rimZ + h)],
+      ["retreat", drop.x, drop.y, RETREAT_ABOVE_RIM.map((h) => rimZ + h)],
     ];
     const moves = {};
     let previous = null;
@@ -75,33 +95,26 @@ export function createPickAndPlace({
     return best;
   }
 
-  function cubeInClaw() {
-    arm.root.updateMatrixWorld(true);
-    const grip = kinematics.gripPoint();
-    const near = trueCubeNear(grip.x, grip.y);
-    if (!near) return null;
-    const vertical = Math.abs(near.cube.position.z - grip.z);
-    return near.distance <= GRIP_TOLERANCE.horizontal && vertical <= GRIP_TOLERANCE.vertical ? near.cube : null;
-  }
-
-  async function dropIntoBasket(cube) {
-    const taken = objects.children.filter((c) => inBasket(c.position.x, c.position.y)).length;
-    objects.attach(cube);
-    const [dx, dy] = BASKET_SLOTS[taken % BASKET_SLOTS.length];
-    const fromPosition = cube.position.clone();
-    const fromRotation = cube.quaternion.clone();
-    const toPosition = new THREE.Vector3(BASKET.x + dx, BASKET.y + dy, TABLE_Z + BASKET.wall + CUBE_SIZE / 2);
-    const toRotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.random() * Math.PI / 2);
-    await animate(350, (k) => {
-      cube.position.lerpVectors(fromPosition, toPosition, k * k); // falls, speeding up
-      cube.quaternion.slerpQuaternions(fromRotation, toRotation, k);
-      worldChanged();
-    });
+  // Closes the claw a little at a time until two fingers touch a cube (it is then
+  // held) or the claw is fully shut (a miss).
+  async function closeClaw() {
+    for (let percent = 0; percent <= 100; percent += CLOSE_STEP) {
+      setClaw(percent);
+      await nextFrame();
+      const cube = physics.cubeBetweenFingers();
+      if (cube) {
+        physics.hold(cube);
+        return { cube, percent };
+      }
+    }
+    return { cube: null, percent: 100 };
   }
 
   async function pickRandom() {
     setStatus("Parking the arm");
     await park();
+    setStatus("Waiting for the cubes to settle");
+    await waitForRest();
 
     if (!calibration?.ok) {
       setStatus("Calibrating from the board stickers");
@@ -117,8 +130,15 @@ export function createPickAndPlace({
       ...target,
       table: pixelToPlane(calibration, target.center[0] * WIDTH, target.center[1] * HEIGHT, TABLE_Z + CUBE_SIZE / 2),
     }));
-    const onTable = targets.filter((t) => !inBasket(t.table.x, t.table.y, 0.01));
-    const reachable = onTable.map((t) => ({ ...t, moves: plan(t.table) })).filter((t) => t.moves);
+    // Whether a detection is in the basket is judged in the image: cubes in it can
+    // sit higher than the table (tilted, or on each other), which would throw
+    // off their table position.
+    const basketOutline = basketInImage();
+    const alreadyIn = targets.filter((t) => insidePolygon(t.center[0] * WIDTH, t.center[1] * HEIGHT, basketOutline));
+    const onTable = targets.filter((t) => !alreadyIn.includes(t));
+    const [dx, dy] = BASKET_SPOTS[alreadyIn.length % BASKET_SPOTS.length];
+    const drop = { x: BASKET.x + dx, y: BASKET.y + dy };
+    const reachable = onTable.map((t) => ({ ...t, moves: plan(t.table, drop) })).filter((t) => t.moves);
     publishTargets(onTable, null);
     if (!reachable.length) {
       const reason = onTable.length ? `${onTable.length} cube(s) seen, none reachable` : "no cubes left outside the basket";
@@ -134,23 +154,32 @@ export function createPickAndPlace({
     await moveArm(null, 0);
     await moveArm(choice.moves.hover);
     await moveArm(choice.moves.grasp);
-    await moveArm(null, GRIP_CLAW);
-    const held = cubeInClaw();
-    if (held) palm.attach(held);
+    const { cube: held, percent: gripped } = await closeClaw();
     await moveArm(choice.moves.lift);
-    await moveArm(choice.moves.release);
+    if (held) {
+      await moveArm(choice.moves.release);
+      // Open just enough to let go (wide open, the fingers would sweep the basket),
+      // and before letting the cube drop, so the fingers are clear of it.
+      await moveArm(null, Math.max(0, gripped - RELEASE_OPENING));
+      physics.release(held);
+      await waitForRest(1500);
+      await moveArm(choice.moves.retreat);
+    }
     await moveArm(null, 0);
-    if (held) await dropIntoBasket(held);
+    await waitForRest(2500);
     await park();
     publishTargets([], null);
 
+    const landed = held && inBasket(held.position.x, held.position.y) && held.position.z < TABLE_Z + BASKET.height + CUBE_SIZE;
     const errorMm = Math.round(truth.distance * 1000);
-    const result = { ok: Boolean(held), cube: truth.cube.name, held: held?.name ?? null, errorMm, seen: targets.length };
-    const name = truth.cube.name.replace("cube_", "");
+    const name = (held ?? truth.cube).name.replace("cube_", "");
     const accuracy = errorMm < 1 ? "under 1 mm" : `${errorMm} mm`;
-    setStatus(held
+    const result = { ok: Boolean(landed), target: truth.cube.name, held: held?.name ?? null, landed: Boolean(landed), errorMm, seen: targets.length };
+    setStatus(landed
       ? `Put ${name} in the basket (camera located it to ${accuracy})`
-      : `Missed ${name}: camera located it ${accuracy} off`);
+      : held
+        ? `Dropped ${name} outside the basket`
+        : `Missed ${name}: the claw closed without gripping it (located ${accuracy} off)`);
     return result;
   }
 

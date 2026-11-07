@@ -4,13 +4,15 @@ import { loadArm } from "./arm.js";
 import { createKinematics } from "./kinematics.js";
 import { OBJECTS } from "./layout.js";
 import { scatterObjects } from "./objects.js";
+import { createPhysics } from "./physics.js";
 import { STATE_CHANNEL, armPose, createRenderer, createScene } from "./scene.js";
 import { createPickAndPlace } from "./task.js";
 
-// park (degrees) swings the arm to one side so the table camera sees every object.
+// park (degrees) swings the arm to one side, high above the basket, so the table
+// camera sees every object and every board sticker.
 const ARM_JOINTS = [
   { name: "yaw_joint", label: "Yaw", park: -90 },
-  { name: "shoulder_joint", label: "Shoulder", park: -30 },
+  { name: "shoulder_joint", label: "Shoulder", park: 0 },
   { name: "elbow_joint", label: "Elbow", park: 25 },
   { name: "wrist_joint", label: "Wrist", park: 30 },
 ];
@@ -101,7 +103,17 @@ window.addEventListener("resize", () => {
   needsRender = true;
 });
 
+let physics = null;
+let lastSimulated = performance.now();
+function simulate() {
+  const now = performance.now();
+  const elapsed = (now - lastSimulated) / 1000;
+  lastSimulated = now;
+  if (physics?.advance(elapsed)) worldChanged();
+}
+
 renderer.setAnimationLoop(() => {
+  simulate();
   controls.update();
   if (!needsRender) return;
   needsRender = false;
@@ -152,7 +164,10 @@ function addSlider({ label, min, max, value, unit, onInput }) {
 // second, so a small worker supplies ~60 ticks a second instead.
 const ticker = new Worker(URL.createObjectURL(new Blob(["setInterval(() => postMessage(0), 16);"], { type: "text/javascript" })));
 const tickWaiters = [];
-ticker.onmessage = () => tickWaiters.splice(0).forEach((resolve) => resolve());
+ticker.onmessage = () => {
+  if (document.hidden) simulate(); // keeps physics running while the camera tab is in front
+  tickWaiters.splice(0).forEach((resolve) => resolve());
+};
 const nextFrame = () => new Promise((resolve) => (document.hidden ? tickWaiters.push(resolve) : requestAnimationFrame(resolve)));
 async function animate(duration, step) {
   const start = performance.now();
@@ -202,10 +217,25 @@ async function start() {
   }
   const park = () => moveArm(ARM_JOINTS.map(({ park }) => park));
 
+  loadingText.textContent = "Starting physics";
+  physics = await createPhysics({ arm, objects });
+  lastSimulated = performance.now();
+
+  // Resolves once every cube has stopped moving (or after timeoutMs).
+  async function waitForRest(timeoutMs = 4000) {
+    const start = performance.now();
+    let still = 0;
+    while (still < 10 && performance.now() - start < timeoutMs) {
+      await nextFrame();
+      still = physics.isAtRest() ? still + 1 : 0;
+    }
+  }
+
   const kinematics = createKinematics(arm);
   const task = createPickAndPlace({
-    arm, kinematics, renderer, scene, camera: tableCamera, objects,
-    moveArm, park, animate, worldChanged, publishTargets,
+    arm, kinematics, physics, renderer, scene, camera: tableCamera, objects,
+    moveArm, park, nextFrame, waitForRest, worldChanged, publishTargets,
+    setClaw: (percent) => controlsList[4].set(percent),
     setStatus: (text) => (taskStatus.textContent = text),
   });
 
@@ -227,21 +257,24 @@ async function start() {
       busy = false;
     }
   };
+  // Drops each cube from a few centimetres up, tumbling, at a random spot.
   const scatter = () => {
     if (busy) return;
     scatterObjects(objects);
+    for (const cube of objects.children) {
+      cube.position.z += 0.03 + Math.random() * 0.07;
+      cube.quaternion.random();
+      physics.place(cube);
+    }
     publishTargets([], null);
     taskStatus.textContent = "Cubes scattered";
     worldChanged();
   };
   const pick = () => runTask(task.pickRandom);
 
-  document.getElementById("home-pose").addEventListener("click", () => {
-    controlsList.forEach((control) => control.reset());
-  });
-  document.getElementById("park-pose").addEventListener("click", () => {
-    ARM_JOINTS.forEach(({ park: angle }, index) => controlsList[index].set(angle));
-  });
+  // Animated rather than instant: a part that jumps through a cube would launch it.
+  document.getElementById("home-pose").addEventListener("click", () => runTask(() => moveArm([0, 0, 0, 0], 0)));
+  document.getElementById("park-pose").addEventListener("click", () => runTask(park));
   document.getElementById("scatter").addEventListener("click", scatter);
   document.getElementById("pick").addEventListener("click", pick);
   document.getElementById("open-camera").addEventListener("click", () => {
@@ -258,7 +291,7 @@ async function start() {
   });
 
   // Console access for trying things out while the sim grows.
-  window.sim = { renderer, scene, camera, tableCamera, controls, arm, kinematics, task, requestRender, scatter, pick, moveArm };
+  window.sim = { renderer, scene, camera, tableCamera, controls, arm, kinematics, physics, task, requestRender, scatter, pick, moveArm, waitForRest };
   requestRender();
   loading.hidden = true;
 }
