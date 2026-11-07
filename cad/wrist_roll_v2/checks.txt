@@ -1,0 +1,21 @@
+input: finalll2222(1).STEP
+before: servo/forearm overlap 295 mm3, gripper base/wrist roll overlap 50 mm3, wrist roll/forearm gap 0.00 mm
+after:  servo/forearm overlap 0.0 mm3, gripper base/wrist roll overlap 0.0 mm3, wrist roll/forearm gap 0.29 mm, servo/forearm gap 0.00 mm
+forearm: 1 solid(s), 370 mm3 removed
+wrist roll part: 1 solid(s), 333 mm3 removed
+wrist roll part still reaches the servo: gap 0.10 mm
+interferences left: none
+roll  -90 deg: clear
+roll  -75 deg: clear
+roll  -60 deg: clear
+roll  -45 deg: clear
+roll  -30 deg: clear
+roll  -15 deg: clear
+roll   +0 deg: clear
+roll  +15 deg: clear
+roll  +30 deg: clear
+roll  +45 deg: clear
+roll  +60 deg: clear
+roll  +75 deg: clear
+roll  +90 deg: clear
+claw centre line (between the drive gears) is 25.9 mm off the servo axis

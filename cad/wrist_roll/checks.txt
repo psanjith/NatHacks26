@@ -1,0 +1,21 @@
+wrist mount: 1 solid(s), 19591 mm3
+claw base:   1 solid(s), 17066 mm3
+mount vs forearm overlap: 4034.01 mm3 (original gripper base: 4034.01)
+servo vs mount overlap:   0.00 mm3
+servo vs forearm overlap: 0.00 mm3
+roll  -90 deg: NAUO1 491.7
+roll  -75 deg: NAUO1 404.9
+roll  -60 deg: NAUO1 330.4
+roll  -45 deg: NAUO1 231.2
+roll  -30 deg: NAUO1 192.3
+roll  -15 deg: clear
+roll   +0 deg: clear
+roll  +15 deg: clear
+roll  +30 deg: clear
+roll  +45 deg: NAUO1 18.2
+roll  +60 deg: NAUO1 374.8
+roll  +75 deg: NAUO1 417.0
+roll  +90 deg: NAUO1 344.6
+claw moved 52 mm along its axis and -10.8 mm across
+added mass at the wrist: 23 g (mount 12 g, servo 9 g, horn 1 g, new claw base 11 g replacing the old gripper base 10 g)
+extra shoulder torque, arm stretched out: about 0.83 kg.cm (SG90 stall torque 1.4-1.9 kg.cm; assumes 50% of solid PLA weight and 28 cm reach)
