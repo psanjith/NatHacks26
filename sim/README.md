@@ -6,6 +6,10 @@ A 3D table scene with the real PNJEX V6 arm model, four cubes, a basket and a ta
 python3 sim/run.py
 ```
 
+**Windows:** install [Python 3](https://www.python.org/downloads/) (tick "Add python.exe to PATH"), then double-click `sim\Start sim.bat`. Or run `py sim\run.py` in a terminal. Keep the window open while you use the sim. It opens in Chrome if installed, otherwise your default browser (Edge works too).
+
+If the page stays on "Loading arm", check that the browser has hardware acceleration turned on, then quit it completely and reopen it.
+
 This serves the sim locally and opens it in a new Chrome tab. It needs only Python 3. three.js and the Rapier physics engine are vendored in `vendor/`, so it works offline.
 
 | File | What it does |

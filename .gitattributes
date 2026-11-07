@@ -1,0 +1,4 @@
+# Keep files byte-for-byte on every OS (Git on Windows may otherwise rewrite line endings).
+sim/arm/*.bin binary
+sim/vendor/** -text
+*.bat text eol=crlf
