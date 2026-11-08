@@ -7,6 +7,7 @@ import { scatterObjects } from "./objects.js";
 import { createPhysics } from "./physics.js";
 import { STATE_CHANNEL, armPose, createRenderer, createScene } from "./scene.js";
 import { createPickAndPlace } from "./task.js";
+import { createEegChooser, drawTrace, loadReplay } from "./eeg-replay.js";
 
 // park (degrees) swings the arm to one side, high above the basket, so the table
 // camera sees every object and every board sticker.
@@ -270,13 +271,41 @@ async function start() {
     taskStatus.textContent = "Cubes scattered";
     worldChanged();
   };
-  const pick = () => runTask(task.pickRandom);
+  const pick = () => runTask(() => task.pickRandom());
+
+  // Brain control from recorded EEG: ?user=<name> picks whose recordings (default nav).
+  const eegUser = new URLSearchParams(location.search).get("user") || "nav";
+  const eegButton = document.getElementById("pick-eeg");
+  const eegStats = document.getElementById("eeg-stats");
+  eegButton.textContent = `Pick with ${eegUser[0].toUpperCase() + eegUser.slice(1)}’s EEG`;
+  let eeg = null;
+  const pickWithEeg = () => runTask(async () => {
+    if (!eeg) {
+      try {
+        eeg = createEegChooser(await loadReplay(eegUser));
+      } catch (error) {
+        taskStatus.textContent = error.message;
+        return { ok: false, reason: error.message };
+      }
+    }
+    const result = await task.pickRandom((options) => {
+      const decision = eeg.choose(options);
+      if (decision.trial) drawTrace(document.getElementById("eeg-trace"), decision.trial.trace_oz);
+      return decision;
+    });
+    const { n, right, wrong, unsure } = eeg.tally;
+    const r = eeg.replay;
+    eegStats.textContent = `Replayed ${n} of ${r.trials.length} recorded trials: ${right} right, ${wrong} wrong, ${unsure} not sure ` +
+      `(${r.method}, ${r.win} s look, cross-validated ${Math.round(100 * r.cv_acc)}%)`;
+    return result;
+  });
 
   // Animated rather than instant: a part that jumps through a cube would launch it.
   document.getElementById("home-pose").addEventListener("click", () => runTask(() => moveArm([0, 0, 0, 0], 0)));
   document.getElementById("park-pose").addEventListener("click", () => runTask(park));
   document.getElementById("scatter").addEventListener("click", scatter);
   document.getElementById("pick").addEventListener("click", pick);
+  eegButton.addEventListener("click", pickWithEeg);
   document.getElementById("open-camera").addEventListener("click", () => {
     window.open("camera.html", "pnjex-table-camera");
   });
@@ -291,7 +320,7 @@ async function start() {
   });
 
   // Console access for trying things out while the sim grows.
-  window.sim = { renderer, scene, camera, tableCamera, controls, arm, kinematics, physics, task, requestRender, scatter, pick, moveArm, waitForRest };
+  window.sim = { renderer, scene, camera, tableCamera, controls, arm, kinematics, physics, task, requestRender, scatter, pick, pickWithEeg, moveArm, waitForRest };
   requestRender();
   loading.hidden = true;
 }

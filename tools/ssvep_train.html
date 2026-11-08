@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSVEP Trainer</title>
+<style>
+  :root {
+    --bg: #0b0f17; --panel: #141a26; --line: #263044; --text: #e8ecf3; --muted: #8d97ab;
+    --good: #3ecf8e; --warn: #f5b942; --bad: #ff5d5d; --cue: #ff8a1f; --guess: #4cc9f0;
+    --a: #ff8a1f; --b: #3ecfc0; --c: #b48cff; --d: #f5d142;
+    --tile: min(20vh, 17vw); --gap: 8vh;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; }
+  .pill { padding: 3px 10px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  .pill.ok { color: var(--good); border-color: #1f5a41; } .pill.bad { color: var(--bad); border-color: #6b2a2a; } .pill.warn { color: var(--warn); border-color: #6b5420; }
+  main { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(360px, 1fr); gap: 16px; padding: 16px; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  button, select { font: inherit; color: var(--text); background: #1d2535; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  button:hover { border-color: #3a4763; } button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--cue); border-color: var(--cue); color: #1a0f00; font-weight: 650; }
+  label.inline { color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tab { border-radius: 99px; padding: 6px 14px; }
+  .tab.on { background: var(--text); color: #0b0f17; border-color: var(--text); font-weight: 650; }
+  .tab .num { opacity: .6; margin-right: 4px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .desc { color: var(--muted); margin: 0 0 10px; font-size: 13px; }
+  .chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .chip { padding: 4px 10px; border-radius: 99px; font-size: 12px; }
+  .chip.on { background: #26324a; border-color: var(--guess); color: #fff; }
+
+  #stage { background: #000; border-radius: 10px; padding: 22px; position: relative; min-height: calc(2 * var(--tile) + var(--gap) + 140px); }
+  #instr { text-align: center; font-size: 22px; font-weight: 600; min-height: 34px; margin-bottom: 18px; color: #fff; }
+  #grid { display: grid; grid-template-columns: var(--tile) var(--tile); gap: var(--gap); justify-content: center; }
+  .tw { position: relative; }
+  .tile { width: var(--tile); height: var(--tile); background: #333; border-radius: 6px; }
+  .tw.empty .tile { background: transparent; }
+  .tw .ring { position: absolute; inset: -12px; bottom: auto; height: calc(var(--tile) + 24px); border-radius: 12px; border: 6px solid transparent; pointer-events: none; }
+  .tw.cue .ring { border-color: var(--cue); }
+  .tw.guess .ring { border-color: var(--guess); border-style: dashed; }
+  .tw .lab { text-align: center; margin-top: 10px; font-weight: 600; font-size: 14px; color: #ccc; min-height: 20px; }
+  .tw.empty .lab { visibility: hidden; }
+  .mark { position: absolute; left: 0; top: 0; width: var(--tile); height: var(--tile); display: flex; align-items: center; justify-content: center; font-size: 64px; font-weight: 800; pointer-events: none; text-shadow: 0 0 12px #000; }
+  #overlay { position: absolute; inset: 0; background: rgba(0,0,0,.92); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; z-index: 3; }
+  #overlay p { max-width: 480px; color: #cfd6e4; margin: 0; }
+  #progress { height: 4px; background: #1d2535; border-radius: 2px; margin-top: 16px; overflow: hidden; }
+  #progress div { height: 100%; width: 0; background: var(--cue); transition: width .3s; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .stats div { background: #0f141e; border: 1px solid var(--line); border-radius: 8px; padding: 8px; min-width: 0; }
+  .stats b { display: block; font-size: 20px; } .stats span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  .msg { padding: 10px 12px; border-radius: 8px; background: #0f141e; border: 1px solid var(--line); margin: 8px 0; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 6px; text-align: center; border-bottom: 1px solid var(--line); font-size: 12px; }
+  th { color: var(--muted); font-weight: 600; }
+  tr.best td { background: rgba(62,207,142,.12); font-weight: 700; }
+  .fbars { display: flex; gap: 8px; align-items: flex-end; height: 130px; margin: 6px 0; }
+  .fbar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 3px; min-width: 0; }
+  .fbar .fill { width: 75%; border-radius: 5px 5px 0 0; background: #4a5878; min-height: 2px; }
+  .fbar.rec .fill { background: var(--good); }
+  .fbar .l { font-size: 11px; color: var(--muted); text-align: center; }
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cmp div { background: #0f141e; border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .cmp b { font-size: 24px; display: block; }
+
+  .chans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .chan { border-radius: 10px; padding: 8px 10px; background: #0f141e; border: 1px solid var(--line); border-left-width: 4px; min-width: 0; }
+  .chan .n { font-weight: 700; display: flex; justify-content: space-between; }
+  .chan .n small { color: var(--muted); font-weight: 500; font-size: 11px; }
+  .chan .nums { color: var(--muted); font-size: 11px; margin-top: 3px; }
+  canvas { width: 100%; display: block; background: #0f141e; border-radius: 8px; }
+  #trialList { max-height: 260px; overflow: auto; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Reach · SSVEP trainer</h1>
+  <span class="pill" id="pUser">profile: –</span>
+  <span class="pill" id="pSource">connecting…</span>
+  <span class="pill" id="pStream">no data</span>
+  <span class="pill" id="pRefresh">screen: measuring…</span>
+  <span class="pill" id="pModel">no model yet</span>
+</header>
+
+<main>
+  <div class="col">
+    <section class="panel">
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-tab="t1"><span class="num">1</span>Test 1 · one target</button>
+        <button class="tab" data-tab="t2"><span class="num">2</span>Test 2 · four targets</button>
+        <button class="tab" data-tab="train"><span class="num">3</span>Train</button>
+        <button class="tab" data-tab="reh"><span class="num">4</span>Rehearse demo</button>
+      </div>
+
+      <div data-pane="t1">
+        <p class="desc">One square flashes at a random frequency. Look at it until it stops; the computer guesses the frequency
+          out of all the options. This tells us which frequencies <span class="who"></span>’s brain follows best.</p>
+        <div class="controls">
+          <label class="inline">Frequencies <select id="t1Set"><option value="all" selected>all 7 (6–15 Hz)</option><option value="four">only the 4 below</option></select></label>
+          <label class="inline">Each × <select id="t1Reps"><option>2</option><option>3</option><option selected>4</option><option>6</option></select></label>
+          <label class="inline">Look <select id="t1Look"><option value="3">3 s</option><option value="4" selected>4 s</option><option value="5">5 s</option></select></label>
+          <button class="primary" id="t1Go">Start Test 1</button>
+        </div>
+      </div>
+
+      <div data-pane="t2" hidden>
+        <p class="desc">All four squares flash, each at its own frequency. Look at the one with the orange ring.
+          Same square size and positions as Test 1, so comparing the two shows what the other three flickering squares cost.</p>
+        <div class="controls">
+          <label class="inline">Each × <select id="t2Reps"><option>4</option><option selected>6</option><option>8</option><option>10</option></select></label>
+          <label class="inline">Look <select id="t2Look"><option value="3">3 s</option><option value="4" selected>4 s</option><option value="5">5 s</option></select></label>
+          <button class="primary" id="t2Go">Start Test 2</button>
+        </div>
+      </div>
+
+      <div data-pane="train" hidden>
+        <p class="desc">Fits a decoder to <span class="who"></span>’s own trials from Tests 1 and 2 (at the 4 frequencies below) and
+          checks it honestly by cross-validation: each trial is scored by a model that never saw it.
+          Picks the method and look time with the best speed at ≥90% accuracy, and a “not sure” cut-off.</p>
+        <div class="controls">
+          <button class="primary" id="trainGo">Train model</button>
+          <span class="hint" id="trainCounts" style="margin:0"></span>
+        </div>
+      </div>
+
+      <div data-pane="reh" hidden>
+        <p class="desc">The demo loop: all four flash, the model decides after its look time, then a short pause.
+          If it isn’t confident it says “not sure” instead of guessing; in the demo the arm would wait.</p>
+        <div class="controls">
+          <label class="inline"><input type="checkbox" id="rehCued" checked> tell me where to look (scored)</label>
+          <button class="primary" id="rehGo">Start rehearsal</button>
+        </div>
+      </div>
+
+      <div class="controls" style="border-top:1px solid var(--line);padding-top:10px">
+        <label class="inline">4 frequencies <span class="chips" id="chips"></span></label>
+        <label class="inline">Spacing <select id="spacing"><option value="close">close</option><option value="normal" selected>normal</option><option value="far">far</option></select></label>
+        <button id="stopBtn" disabled>Stop (Esc)</button>
+      </div>
+
+      <div id="stage">
+        <div id="instr">Pick a test above</div>
+        <div id="grid"></div>
+        <div id="progress"><div></div></div>
+        <div id="overlay">
+          <div style="font-size:20px;font-weight:700">⚠ Flashing lights</div>
+          <p>These tests show squares flickering 6–15 times per second. Don’t take part if you have epilepsy or are
+             sensitive to flashing light. Stop any time with Esc. There’s a rest break every 10 trials.</p>
+          <button class="primary" id="agree">I understand, continue</button>
+        </div>
+      </div>
+      <p class="hint">Before starting: all electrodes green on the right, sit ~60 cm from the screen, relax your jaw, try not to blink while a square flashes.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Trials <span id="scopeLbl"></span></h2>
+      <div class="controls"><label class="inline">Show <select id="scope"><option value="all" selected>all sessions</option><option value="session">this session only</option></select></label></div>
+      <div id="trialList"><table id="trials"><thead><tr><th>#</th><th>test</th><th>looked at</th><th>FBCCA said</th><th>model said</th><th>SNR</th><th>notes</th></tr></thead><tbody></tbody></table></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel" id="resPanel">
+      <h2 id="resTitle">Results</h2>
+      <div id="res"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Electrodes</h2>
+      <div class="chans" id="chans"></div>
+      <div class="msg" id="sigMsg" style="margin-bottom:0">waiting for data…</div>
+    </section>
+
+    <section class="panel">
+      <h2>Spectrum of O1/Oz/O2 (last 4 s)</h2>
+      <canvas id="cvSpec" height="160"></canvas>
+    </section>
+  </div>
+</main>
+
+<script>
+const NOMINAL = [6, 6.667, 7.5, 8.571, 10, 12, 15];
+const DEFAULT4 = [7.5, 8.571, 10, 12];
+const LETTERS = ["A", "B", "C", "D"];
+const CUE_S = 1.2, FEEDBACK_S = 1.0, REST_EVERY = 10;
+const GAP = {close: "3vh", normal: "8vh", far: "16vh"};
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const post = (url, body) => fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})}).then(r => r.json());
+const fmt = f => (+f).toFixed(2).replace(/\.?0+$/, "");
+const pct = p => p == null ? "–" : `${Math.round(100 * p)}%`;
+const cls = p => p == null ? "" : p >= .9 ? "good" : p >= .6 ? "warn" : "bad";
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+let refresh = 60, frameMs = 1000 / 60, cands = [], freqs4 = [], agreed = false, tab = "t1";
+let busy = false, runTok = 0, user = "", model = null, hovered = null, lastSummary = null, trainRes = null;
+
+// ---------- tiles + frame-locked flicker (on = (frame % P) < P/2, phase 0 at onset)
+const tiles = [];
+for (let i = 0; i < 4; i++) {
+  const w = document.createElement("div");
+  w.className = "tw";
+  w.innerHTML = `<div class="tile"></div><div class="ring"></div><div class="mark"></div><div class="lab"></div>`;
+  w.addEventListener("mouseenter", () => hovered = i);
+  w.addEventListener("mouseleave", () => hovered = null);
+  $("grid").appendChild(w);
+  tiles.push({w, el: w.querySelector(".tile"), mark: w.querySelector(".mark"), lab: w.querySelector(".lab"), P: null, on: null});
+}
+function layout(shown, labels) {  // shown: per position a frequency or null (empty)
+  tiles.forEach((t, i) => {
+    t.f = shown[i]; t.P = shown[i] ? Math.round(refresh / shown[i]) : null; t.on = null;
+    t.w.classList.toggle("empty", !shown[i]); t.el.style.background = shown[i] ? "#333" : "transparent";
+    t.lab.textContent = labels ? labels[i] || "" : "";
+  });
+}
+const setCue = i => tiles.forEach((t, k) => t.w.classList.toggle("cue", k === i));
+const setGuess = i => tiles.forEach((t, k) => t.w.classList.toggle("guess", k === i));
+const setMark = (i, txt, color) => tiles.forEach((t, k) => { t.mark.textContent = k === i ? txt : ""; t.mark.style.color = color || "#fff"; });
+
+let fl = null;
+const wall = ts => Date.now() - (performance.now() - ts);
+function flicker(ms) { return new Promise(res => { fl = {ms, res, t0: 0, last: 0, drops: 0}; }); }
+function abortFlicker() { if (fl) { const r = fl.res; fl = null; paintIdle(); r({aborted: true}); } }
+function paintIdle() { tiles.forEach(t => { t.on = null; if (t.P) t.el.style.background = "#333"; }); }
+function loop(ts) {
+  if (fl) {
+    if (!fl.t0) { fl.t0 = ts; fl.last = ts; fl.onset = wall(ts); }
+    const dt = ts - fl.last; fl.last = ts;
+    if (dt > frameMs * 1.5) fl.drops += Math.round(dt / frameMs) - 1;
+    const el = ts - fl.t0;
+    if (el >= fl.ms) {
+      const r = {onset: fl.onset / 1000, offset: wall(ts) / 1000, drops: fl.drops}, res = fl.res;
+      fl = null; paintIdle(); res(r);
+    } else {
+      const k = Math.round(el / frameMs);
+      for (const t of tiles) if (t.P) { const on = (k % t.P) < t.P / 2; if (on !== t.on) { t.on = on; t.el.style.background = on ? "#fff" : "#000"; } }
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+async function measureRefresh() {
+  const ts = [];
+  await new Promise(res => { const f = t => { ts.push(t); ts.length < 121 ? requestAnimationFrame(f) : res(); }; requestAnimationFrame(f); });
+  const d = ts.slice(1).map((t, i) => t - ts[i]).sort((a, b) => a - b);
+  refresh = Math.round(1000 / d[Math.floor(d.length / 2)]); frameMs = 1000 / refresh;
+  const seen = new Set();
+  cands = [];
+  for (const f of NOMINAL) { const P = Math.round(refresh / f); if (P >= 2 && !seen.has(P)) { seen.add(P); cands.push(refresh / P); } }
+  const ok = refresh >= 59 && cands.length === NOMINAL.length;
+  $("pRefresh").textContent = `screen: ${refresh} Hz` + (Math.abs(refresh % 60) > 1 && refresh % 60 < 59 ? " (not a multiple of 60: frequencies approximate)" : "");
+  $("pRefresh").className = "pill " + (ok ? "ok" : "warn");
+  let saved = null; try { saved = JSON.parse(localStorage.getItem("reach.freqs4")); } catch (e) {}
+  setFreqs4(saved && saved.length === 4 ? saved : DEFAULT4);
+}
+function snap(f) { const P = Math.round(refresh / f); return refresh / P; }
+function setFreqs4(list) {
+  freqs4 = list.map(snap).sort((a, b) => a - b);
+  try { localStorage.setItem("reach.freqs4", JSON.stringify(freqs4)); } catch (e) {}
+  $("chips").innerHTML = cands.map(f => `<button class="chip ${freqs4.some(g => Math.abs(g - f) < .01) ? "on" : ""}" data-f="${f}">${fmt(f)}</button>`).join("");
+  $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => {
+    if (busy) return;
+    const f = +b.dataset.f, has = freqs4.some(g => Math.abs(g - f) < .01);
+    let next = has ? freqs4.filter(g => Math.abs(g - f) >= .01) : [...freqs4, f];
+    if (next.length > 4) next = next.slice(1);
+    if (next.length === 4) setFreqs4(next); else { freqs4 = next; b.classList.toggle("on", !has); }
+  });
+  if (freqs4.length === 4) { idleLayout(); refreshSummary(); }
+}
+function idleLayout() {
+  if (busy) return;
+  if (tab === "t1") layout([null, null, null, null]);
+  else layout(freqs4, freqs4.map((f, i) => `${LETTERS[i]} · ${fmt(f)} Hz`));
+  post("/api/shown", {freqs: tab === "t1" ? cands : freqs4, refresh_hz: refresh});
+}
+
+// ---------- running trials
+async function runTrial(spec, tok) {
+  // spec: {test, pos (cue position or null), shown[4], target_freq, cands, look_s, labels}
+  layout(spec.shown, spec.labels);
+  setGuess(null); setMark(null, ""); setCue(spec.pos);
+  $("instr").textContent = spec.cueText;
+  await sleep(CUE_S * 1000);
+  if (tok !== runTok) return null;
+  const st = await post("/api/trial/start", {test: spec.test, target_freq: spec.target_freq, shown: spec.shown.filter(Boolean),
+    cands: spec.cands, spacing: $("spacing").value, pos: spec.pos, look_s: spec.look_s, refresh_hz: refresh,
+    fake_freq: spec.pos == null && hovered != null ? spec.shown[hovered] : null});
+  if (st.error) { $("instr").textContent = st.error; return null; }
+  $("instr").textContent = spec.lookText;
+  const r = await flicker(spec.look_s * 1000);
+  if (r.aborted || tok !== runTok) { post("/api/trial/end", {aborted: true}); return null; }
+  return await post("/api/trial/end", r);
+}
+async function rest(tok) {
+  $("instr").innerHTML = "Rest: blink, relax your jaw, look away. <b>Space</b> to continue";
+  layout([null, null, null, null]);
+  await new Promise(res => { const h = e => { if (e.code === "Space" || e.type === "click") { removeEventListener("keydown", h); $("stage").removeEventListener("click", h); res(); } }; addEventListener("keydown", h); $("stage").addEventListener("click", h); });
+  return tok === runTok;
+}
+function begin() {
+  if (!agreed) { $("instr").textContent = "Please read the warning first."; return null; }
+  if (freqs4.length !== 4) { $("instr").textContent = "Pick exactly 4 frequencies first."; return null; }
+  busy = true; runTok++;
+  document.querySelectorAll("#tabs .tab, [data-pane] button.primary").forEach(b => b.disabled = true);
+  $("stopBtn").disabled = false;
+  return runTok;
+}
+function finish(text) {
+  busy = false; abortFlicker();
+  document.querySelectorAll("#tabs .tab, [data-pane] button.primary").forEach(b => b.disabled = false);
+  $("stopBtn").disabled = true; setCue(null); setGuess(null); setMark(null, ""); progress(0);
+  if (text) $("instr").textContent = text;
+  idleLayout(); refreshSummary();
+}
+function stop() { if (!busy) return; runTok++; finish("Stopped."); }
+const progress = p => $("progress").firstElementChild.style.width = `${100 * p}%`;
+
+async function countdown(tok, what) {
+  for (let s = 3; s > 0; s--) { if (tok !== runTok) return false; $("instr").textContent = `${what}: starting in ${s}…`; await sleep(1000); }
+  return tok === runTok;
+}
+
+async function test1() {
+  const tok = begin(); if (!tok) return;
+  const set = $("t1Set").value === "all" ? cands : freqs4, reps = +$("t1Reps").value, look = +$("t1Look").value;
+  const order = shuffle(set.flatMap(f => Array(reps).fill(f)));
+  post("/api/note", {ev: "test1_start", n: order.length, freqs: set, look_s: look, spacing: $("spacing").value});
+  if (!await countdown(tok, `Test 1, ${order.length} trials`)) return;
+  let ok = 0, done = 0;
+  for (let k = 0; k < order.length; k++) {
+    if (k && k % REST_EVERY === 0 && !await rest(tok)) return;
+    const pos = Math.floor(Math.random() * 4), shown = [null, null, null, null]; shown[pos] = order[k];
+    const r = await runTrial({test: "single", pos, shown, target_freq: order[k], cands: set, look_s: look,
+      cueText: `Trial ${k + 1}/${order.length}: look at the square`, lookText: `Trial ${k + 1}/${order.length}: keep looking…`}, tok);
+    if (!r) { if (tok === runTok) finish(); return; }
+    if (r.error) { $("instr").textContent = r.error; await sleep(1500); continue; }
+    done++; ok += r.fb_correct ? 1 : 0; addRow(r); progress((k + 1) / order.length);
+    setMark(pos, r.fb_correct ? "✓" : "✗", r.fb_correct ? "var(--good)" : "var(--bad)");
+    tiles[pos].lab.textContent = `${fmt(r.target_freq)} Hz · guessed ${fmt(r.fb_pred)}`;
+    $("instr").textContent = r.fb_correct ? `✓ ${fmt(r.target_freq)} Hz` : `✗ it was ${fmt(r.target_freq)} Hz, computer said ${fmt(r.fb_pred)}`;
+    await sleep(FEEDBACK_S * 1000);
+    if (tok !== runTok) return;
+  }
+  finish(`Test 1 done: ${ok}/${done} right (chance ${Math.round(100 / set.length)}%). See the frequency ranking →`);
+}
+
+async function test2() {
+  const tok = begin(); if (!tok) return;
+  const reps = +$("t2Reps").value, look = +$("t2Look").value;
+  const order = shuffle([0, 1, 2, 3].flatMap(i => Array(reps).fill(i)));
+  const labels = freqs4.map((f, i) => LETTERS[i]);
+  post("/api/note", {ev: "test2_start", n: order.length, freqs: freqs4, look_s: look, spacing: $("spacing").value});
+  if (!await countdown(tok, `Test 2, ${order.length} trials`)) return;
+  let ok = 0, done = 0;
+  for (let k = 0; k < order.length; k++) {
+    if (k && k % REST_EVERY === 0 && !await rest(tok)) return;
+    const pos = order[k];
+    const r = await runTrial({test: "four", pos, shown: freqs4.slice(), target_freq: freqs4[pos], cands: freqs4, look_s: look, labels,
+      cueText: `Trial ${k + 1}/${order.length}: look at ${LETTERS[pos]}`, lookText: `Trial ${k + 1}/${order.length}: keep looking at ${LETTERS[pos]}`}, tok);
+    if (!r) { if (tok === runTok) finish(); return; }
+    if (r.error) { $("instr").textContent = r.error; await sleep(1500); continue; }
+    done++; ok += r.fb_correct ? 1 : 0; addRow(r); progress((k + 1) / order.length);
+    const pi = freqs4.findIndex(f => Math.abs(f - r.fb_pred) < .01);
+    setMark(pi, r.fb_correct ? "✓" : "✗", r.fb_correct ? "var(--good)" : "var(--bad)");
+    await sleep(FEEDBACK_S * 1000);
+    if (tok !== runTok) return;
+  }
+  finish(`Test 2 done: ${ok}/${done} right (chance 25%). Compare with Test 1 →`);
+}
+
+async function rehearse() {
+  if (!model || !sameFreqs(model.freqs, freqs4)) {
+    $("instr").textContent = model ? `The model was trained on ${model.freqs.map(fmt).join(", ")} Hz: select those 4 or retrain.` : "Train a model first (tab 3).";
+    return;
+  }
+  const tok = begin(); if (!tok) return;
+  const cued = $("rehCued").checked, look = model.lat + model.win + 0.15;
+  const labels = freqs4.map((f, i) => LETTERS[i]);
+  post("/api/note", {ev: "rehearse_start", cued, look_s: look});
+  if (!await countdown(tok, "Rehearsal")) return;
+  for (let k = 0; ; k++) {
+    if (k && k % REST_EVERY === 0 && !await rest(tok)) return;
+    const pos = cued ? Math.floor(Math.random() * 4) : null;
+    const r = await runTrial({test: "rehearse", pos, shown: freqs4.slice(), target_freq: cued ? freqs4[pos] : null, cands: freqs4, look_s: look, labels,
+      cueText: cued ? `Look at ${LETTERS[pos]}` : "Pick a square and look at it", lookText: cued ? `Keep looking at ${LETTERS[pos]}…` : "Keep looking…"}, tok);
+    if (!r) { if (tok === runTok) finish(); return; }
+    if (r.error || !r.model) { $("instr").textContent = r.error || "Model couldn't score this trial."; await sleep(1500); continue; }
+    addRow(r);
+    const m = r.model, pi = freqs4.findIndex(f => Math.abs(f - m.pred) < .01);
+    if (!m.accepted) { setGuess(null); $("instr").textContent = `Not sure (confidence ${m.margin.toFixed(2)}): the arm would wait`; }
+    else {
+      setGuess(pi);
+      const good = m.correct == null ? null : m.correct;
+      setMark(pi, good == null ? "→" : good ? "✓" : "✗", good == null ? "var(--guess)" : good ? "var(--good)" : "var(--bad)");
+      $("instr").textContent = `Picked ${LETTERS[pi]}` + (good == null ? "" : good ? " ✓" : ` ✗ (you looked at ${LETTERS[pos]})`);
+    }
+    renderRehearse();
+    await sleep(1400);
+    if (tok !== runTok) return;
+  }
+}
+const sameFreqs = (a, b) => a.length === b.length && a.every((f, i) => Math.abs(f - b[i]) < .06);
+
+// ---------- results
+function addRow(r) {
+  const tb = $("trials").querySelector("tbody"), tr = document.createElement("tr");
+  const notes = [r.artifact ? "movement/clench" : "", r.packet_rate != null && r.packet_rate < .9 ? `lost ${Math.round(100 * (1 - r.packet_rate))}% packets` : "",
+    r.drops ? `${r.drops} dropped frames` : ""].filter(Boolean).join(", ");
+  const tname = {single: "1 · one", four: `2 · four (${r.spacing})`, rehearse: "rehearse"}[r.test] || r.test;
+  const mod = r.model ? `<span class="${r.model.correct == null ? "" : r.model.correct ? "good" : "bad"}">${fmt(r.model.pred)}${r.model.accepted ? "" : " (unsure)"}</span>` : "–";
+  tr.innerHTML = `<td>${r.id}</td><td>${tname}</td><td>${r.target_freq ? fmt(r.target_freq) : "free"}</td>
+    <td class="${r.fb_correct == null ? "" : r.fb_correct ? "good" : "bad"}">${fmt(r.fb_pred)}${r.fb_correct == null ? "" : r.fb_correct ? " ✓" : " ✗"}</td>
+    <td>${mod}</td><td>${r.snr ? r.snr.toFixed(1) + "×" : "–"}</td><td style="color:var(--muted)">${notes}</td>`;
+  tb.prepend(tr);
+}
+async function refreshSummary() {
+  if (freqs4.length !== 4) return;
+  const s = await post("/api/summary", {scope: $("scope").value, freqs4});
+  if (s.error) return;
+  lastSummary = s;
+  $("scopeLbl").textContent = `· ${s.n} saved${s.sessions > 1 ? ` over ${s.sessions} sessions` : ""}`;
+  const tb = $("trials").querySelector("tbody"); tb.innerHTML = "";
+  s.recent.forEach(addRow);
+  renderResults();
+}
+function renderResults() {
+  const s = lastSummary; if (!s) return;
+  if (tab === "t1") renderT1(s); else if (tab === "t2") renderT2(s); else if (tab === "train") renderTrain(); else renderRehearse();
+}
+function renderT1(s) {
+  $("resTitle").textContent = "Test 1 · which frequencies work best";
+  const t = s.t1;
+  if (!t.n) { $("res").innerHTML = `<p class="hint">No Test 1 trials yet. 7 frequencies × 4 = 28 trials, about 3 minutes.</p>`; return; }
+  const mx = Math.max(2, ...t.per.map(p => p.snr));
+  const rec = t.recommend || [];
+  $("res").innerHTML = `<div class="stats">
+      <div><b class="${cls(t.acc)}">${pct(t.acc)}</b><span>right</span></div><div><b>${t.n}</b><span>trials</span></div>
+      <div><b>${pct(t.chance)}</b><span>chance</span></div><div><b>${rec.length ? rec.map(fmt).join(" · ") : "–"}</b><span>best 4 (Hz)</span></div></div>
+    <div class="fbars">${t.per.map(p => `<div class="fbar ${rec.some(f => Math.abs(f - p.freq) < .06) ? "rec" : ""}">
+      <div class="l">${p.hits}/${p.n}</div><div class="fill" style="height:${88 * p.snr / mx}%"></div><div class="l"><b>${fmt(p.freq)}</b><br>${p.snr.toFixed(1)}×</div></div>`).join("")}</div>
+    <p class="hint">Bar height = median SNR at that frequency (how strongly the brain follows it; 1× = nothing). Top number = times guessed right.
+      Green = recommended set: strongest responses, at least 0.9 Hz apart, no harmonic pairs (e.g. 7.5 + 15).</p>
+    ${rec.length ? `<div class="controls" style="margin-top:10px"><button id="useRec">Use ${rec.map(fmt).join(", ")} Hz for Test 2 and training</button></div>`
+      : `<p class="hint">Need at least 2 trials of each frequency to recommend a set.</p>`}`;
+  if ($("useRec")) $("useRec").onclick = () => setFreqs4(rec);
+}
+function renderT2(s) {
+  $("resTitle").textContent = "Test 2 · effect of the other three squares";
+  const c = s.compare, groups = Object.entries(s.t2);
+  let h = "";
+  if (!groups.length) h += `<p class="hint">No Test 2 trials at ${freqs4.map(fmt).join(", ")} Hz yet. 4 targets × 6 = 24 trials, about 2.5 minutes.</p>`;
+  for (const [sp, g] of groups) {
+    h += `<div class="stats"><div><b class="${cls(g.acc)}">${pct(g.acc)}</b><span>right · ${sp}</span></div><div><b>${g.n}</b><span>trials</span></div>
+      <div><b>${g.itr}</b><span>bits / min</span></div><div><b class="${cls(g.model_acc)}">${g.model_n ? pct(g.model_acc) : "–"}</b><span>model${g.model_n ? ` (${g.model_n})` : ""}</span></div></div>`;
+  }
+  if (c.alone && c.four) {
+    const a = c.alone.all;
+    h += `<h2 style="margin-top:14px">Alone vs. with 3 flickering neighbours</h2>
+      <p class="hint" style="margin:0 0 8px">Same 4 frequencies, same ${c.win}-s window, same decoder (FBCCA, choosing among the 4).</p>
+      <div class="cmp"><div><span class="hint">Alone (Test 1)</span><b class="${cls(a.acc)}">${pct(a.acc)}</b><span class="hint">${a.n} trials</span></div>`
+      + Object.entries(c.four).map(([sp, v]) => `<div><span class="hint">Four flashing · ${sp}</span><b class="${cls(v.acc)}">${pct(v.acc)}</b>
+        <span class="hint">${v.n} trials · ${v.acc >= a.acc ? "no cost" : `${Math.round(100 * (a.acc - v.acc))} points lower`}</span></div>`).join("") + `</div>
+      <p class="hint">With fewer than ~20 trials per side, a 10-point gap can be chance. Try “far” spacing to see if distance helps.</p>`;
+  } else if (groups.length) h += `<p class="hint">Run Test 1 with these 4 frequencies included to compare.</p>`;
+  const last = groups.length ? groups[groups.length - 1] : null;
+  if (last) {
+    const M = last[1].confusion;
+    h += `<h2 style="margin-top:14px">Confusion (${last[0]} spacing)</h2><table><tr><th>looked ↓ / said →</th>${freqs4.map((f, i) => `<th>${LETTERS[i]} ${fmt(f)}</th>`).join("")}</tr>` +
+      M.map((row, i) => { const tot = row.reduce((x, y) => x + y, 0) || 1;
+        return `<tr><th>${LETTERS[i]}</th>${row.map((v, j) => `<td style="background:${v ? (i === j ? "rgba(62,207,142," : "rgba(255,93,93,") + (0.15 + 0.6 * v / tot) + ")" : "transparent"}">${v || ""}</td>`).join("")}</tr>`; }).join("") + `</table>`;
+  }
+  $("res").innerHTML = h;
+}
+function renderTrain() {
+  $("resTitle").textContent = "Train · personal decoder";
+  const r = trainRes;
+  let h = "";
+  if (model) h += `<div class="msg">Current model: <b>${model.method}</b>, ${model.win}-s look, ${model.freqs.map(fmt).join(" / ")} Hz ·
+      cross-validated <b class="${cls(model.cv_acc)}">${pct(model.cv_acc)}</b> over ${model.cv_n} trials · ${model.cv_itr} bits/min ·
+      “not sure” below ${model.thr ?? "– (no safe cut-off)"}${model.thr != null ? ` (keeps ${pct(model.cover)} of picks, ${pct(model.acc_accepted ?? null)} of those right)` : ""} · trained ${model.created}</div>`;
+  if (!r) { h += `<p class="hint">Press “Train model”. More trials help: aim for 8+ per frequency (Test 1 and Test 2 both count).</p>`; $("res").innerHTML = h; return; }
+  if (r.error) { $("res").innerHTML = h + `<div class="msg bad">${r.error}</div>`; return; }
+  const b = r.best;
+  h += `<table><tr><th>method</th><th>look</th><th>right</th><th>n</th><th>bits/min</th><th>Test 1</th><th>Test 2</th></tr>` +
+    r.rows.map(x => `<tr class="${x === b || (x.method === b.method && x.win === b.win) ? "best" : ""}"><td>${x.method}</td><td>${x.win} s</td>
+      <td class="${cls(x.acc)}">${pct(x.acc)}</td><td>${x.n}</td><td>${x.itr}</td><td>${x.by_test.single ? pct(x.by_test.single.acc) : "–"}</td><td>${x.by_test.four ? pct(x.by_test.four.acc) : "–"}</td></tr>`).join("") + `</table>
+    <p class="hint">fbcca = no training · trca = trained on ${user}’s trials · bits/min counts 1 s to move the eyes per pick. Trials per frequency: ${r.counts.join(" / ")}.
+      Saved to <code>${r.path}</code>.</p>` +
+    (r.export && r.export.trials ? `<div class="msg">Recordings exported by frequency (${Object.entries(r.export.per_hz).map(([k, v]) => `${k}: ${v}`).join(", ")})
+      to <code>logs/users/${user}/by_hz/</code>.${r.export.replay ? ` Sim replay ready: ${r.export.replay.n} trials. In the sim, press <b>Pick with ${user}’s EEG</b>.` : ""}</div>` : "");
+  $("res").innerHTML = h;
+}
+function renderRehearse() {
+  $("resTitle").textContent = "Rehearsal";
+  const s = lastSummary;
+  const R = (s ? s.recent : []).filter(t => t.test === "rehearse" && t.model);
+  const scored = R.filter(t => t.model.correct != null && t.model.accepted);
+  const unsure = R.filter(t => !t.model.accepted).length;
+  const ok = scored.filter(t => t.model.correct).length;
+  $("res").innerHTML = (model ? `<p class="hint" style="margin-top:0">Model: ${model.method}, ${model.win}-s look, “not sure” below ${model.thr ?? "–"}.</p>` : `<p class="hint">No model yet.</p>`) +
+    `<div class="stats"><div><b class="${cls(scored.length ? ok / scored.length : null)}">${scored.length ? pct(ok / scored.length) : "–"}</b><span>right when it picked</span></div>
+     <div><b>${R.length}</b><span>selections</span></div><div><b>${unsure}</b><span>not sure</span></div>
+     <div><b>${model ? (model.lat + model.win + 0.15 + CUE_S).toFixed(1) + " s" : "–"}</b><span>per pick</span></div></div>
+     <p class="hint">Uncheck “tell me where to look” for the real demo feel: pick any square yourself.</p>`;
+}
+
+// ---------- live data
+function fitCanvas(cv) {
+  const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1, h = +cv.getAttribute("height");
+  if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(h * dpr); }
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h];
+}
+const LV = {good: "#3ecf8e", warn: "#f5b942", bad: "#ff5d5d"};
+function drawSpec(s) {
+  const [ctx, W, H] = fitCanvas($("cvSpec")); ctx.clearRect(0, 0, W, H);
+  const f = s.spec_f, a = s.spec_a, lo = 4, hi = 40, L = 34, B = 20;
+  const X = v => L + (W - L - 8) * (v - lo) / (hi - lo);
+  let ymax = .5; f.forEach((v, i) => { if (v >= 5 && v <= hi) ymax = Math.max(ymax, a[i]); }); ymax *= 1.15;
+  const Y = v => (H - B) - (H - B - 8) * v / ymax;
+  ctx.font = "10px sans-serif"; ctx.fillStyle = "#8d97ab";
+  for (let g = 5; g <= hi; g += 5) ctx.fillText(g, X(g) - 5, H - 6);
+  ctx.fillText(ymax.toFixed(1) + "µV", 2, 12);
+  (s.freqs || []).forEach(fr => { if (fr > hi) return; ctx.strokeStyle = "#4cc9f0"; ctx.globalAlpha = .45; ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(X(fr), 6); ctx.lineTo(X(fr), H - B); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; });
+  ctx.strokeStyle = "#e8ecf3"; ctx.lineWidth = 1.5; ctx.beginPath(); let st = false;
+  f.forEach((v, i) => { if (v < lo || v > hi) return; st ? ctx.lineTo(X(v), Y(a[i])) : ctx.moveTo(X(v), Y(a[i])); st = true; });
+  ctx.stroke();
+}
+function renderChans(s) {
+  $("chans").innerHTML = s.quality.map(q => `<div class="chan" style="border-left-color:${LV[q.level]}">
+    <div class="n"><span>${q.name}</span><small>${q.role}</small></div>
+    <div class="nums">eeg ${q.eeg_uv} · hum ${q.hum_uv}<br>alpha ${q.alpha_x}× · emg ${q.emg_uv}</div></div>`).join("");
+  const ss = s.quality.filter((q, i) => s.ssvep_idx.includes(i)), bad = ss.filter(q => q.level !== "good");
+  $("sigMsg").innerHTML = bad.length ? `<span class="${bad.some(q => q.level === "bad") ? "bad" : "warn"}">Fix ${bad.map(q => q.name).join(", ")}:</span> ${bad[0].msg}`
+    : `<span class="good">O1, Oz, O2 all good.</span> Ready to test.`;
+}
+function connect() {
+  const es = new EventSource("/stream");
+  es.onmessage = e => {
+    const s = JSON.parse(e.data);
+    user = s.user; document.querySelectorAll(".who").forEach(el => el.textContent = user);
+    $("pUser").textContent = `profile: ${user}`; $("pUser").className = "pill ok";
+    $("pSource").textContent = s.source; $("pSource").className = "pill ok";
+    const stale = s.stale_s == null || s.stale_s > 1.5;
+    $("pStream").textContent = stale ? "no data arriving!" : `${s.fs} Hz · ${Math.round(s.samples / s.fs)} s`;
+    $("pStream").className = "pill " + (stale ? "bad" : "ok");
+    const had = model && JSON.stringify(model); model = s.model;
+    $("pModel").textContent = model ? `model: ${model.method} ${model.win}s · ${pct(model.cv_acc)}` : "no model yet";
+    $("pModel").className = "pill " + (model ? cls(model.cv_acc).replace("good", "ok").replace("warn", "warn") : "");
+    if (had !== (model && JSON.stringify(model)) && tab === "train") renderTrain();
+    if (s.warming) return;
+    renderChans(s); drawSpec(s);
+    if (stale) $("sigMsg").innerHTML = `<span class="bad">No data:</span> headset not streaming. Check it’s on and in range.`;
+  };
+  es.onerror = () => { $("pSource").textContent = "server not running"; $("pSource").className = "pill bad"; };
+}
+
+// ---------- wire up
+function setTab(t) {
+  if (busy) return;
+  tab = t;
+  document.querySelectorAll("#tabs .tab").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  document.querySelectorAll("[data-pane]").forEach(p => p.hidden = p.dataset.pane !== t);
+  idleLayout(); renderResults();
+}
+document.querySelectorAll("#tabs .tab").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+$("agree").onclick = () => { agreed = true; $("overlay").remove(); };
+$("t1Go").onclick = test1; $("t2Go").onclick = test2; $("rehGo").onclick = rehearse;
+$("trainGo").onclick = async () => {
+  if (freqs4.length !== 4) return;
+  $("trainGo").disabled = true; $("trainCounts").textContent = "training…";
+  trainRes = await post("/api/train", {scope: $("scope").value, freqs4});
+  $("trainGo").disabled = false; $("trainCounts").textContent = "";
+  if (trainRes.model) model = trainRes.model;
+  renderTrain();
+};
+$("stopBtn").onclick = stop;
+$("spacing").onchange = () => document.documentElement.style.setProperty("--gap", GAP[$("spacing").value]);
+$("scope").onchange = refreshSummary;
+addEventListener("keydown", e => { if (e.key === "Escape") stop(); });
+requestAnimationFrame(loop);
+measureRefresh();
+connect();
+</script>
+</body>
+</html>

@@ -110,7 +110,9 @@ export function createPickAndPlace({
     return { cube: null, percent: 100 };
   }
 
-  async function pickRandom() {
+  // choose (optional): picks the cube instead of chance, e.g. from recorded EEG.
+  // It gets { onTable, reachable } and returns { target (or null to wait), line }.
+  async function pickRandom(choose = null) {
     setStatus("Parking the arm");
     await park();
     setStatus("Waiting for the cubes to settle");
@@ -146,10 +148,23 @@ export function createPickAndPlace({
       return { ok: false, reason, seen: targets.length };
     }
 
-    const choice = reachable[Math.floor(Math.random() * reachable.length)];
+    let choice;
+    let prefix = "";
+    let decision = null;
+    if (choose) {
+      decision = choose({ onTable, reachable });
+      if (!decision.target) {
+        setStatus(decision.line);
+        return { ok: false, reason: "decoder did not pick", decision, seen: targets.length };
+      }
+      choice = decision.target;
+      prefix = `${decision.line} `;
+    } else {
+      choice = reachable[Math.floor(Math.random() * reachable.length)];
+    }
     const truth = trueCubeNear(choice.table.x, choice.table.y);
     publishTargets(onTable, choice.id);
-    setStatus(`Picking cube ${choice.id} of ${onTable.length}`);
+    setStatus(`${prefix}Picking cube ${choice.id} of ${onTable.length}`);
 
     await moveArm(null, 0);
     await moveArm(choice.moves.hover);
@@ -174,12 +189,12 @@ export function createPickAndPlace({
     const errorMm = Math.round(truth.distance * 1000);
     const name = (held ?? truth.cube).name.replace("cube_", "");
     const accuracy = errorMm < 1 ? "under 1 mm" : `${errorMm} mm`;
-    const result = { ok: Boolean(landed), target: truth.cube.name, held: held?.name ?? null, landed: Boolean(landed), errorMm, seen: targets.length };
-    setStatus(landed
+    const result = { ok: Boolean(landed), target: truth.cube.name, held: held?.name ?? null, landed: Boolean(landed), errorMm, seen: targets.length, decision };
+    setStatus(prefix + (landed
       ? `Put ${name} in the basket (camera located it to ${accuracy})`
       : held
         ? `Dropped ${name} outside the basket`
-        : `Missed ${name}: the claw closed without gripping it (located ${accuracy} off)`);
+        : `Missed ${name}: the claw closed without gripping it (located ${accuracy} off)`));
     return result;
   }
 

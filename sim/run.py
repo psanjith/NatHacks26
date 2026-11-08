@@ -8,6 +8,7 @@ import webbrowser
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+USERS = HERE.parent / "logs" / "users"  # recorded EEG (git-ignored), written by tools/ssvep_train.py
 FIRST_PORT = 8000
 
 
@@ -18,6 +19,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def log_message(self, *args):
         pass
+
+    def do_GET(self):
+        # /eeg/<user>.json -> that person's recorded SSVEP replay file
+        if self.path.startswith("/eeg/") and self.path.endswith(".json"):
+            user = "".join(c for c in self.path[5:-5] if c.isalnum() or c in "-_")
+            path = USERS / user / "sim_replay.json"
+            if not path.is_file():
+                self.send_error(404, f"No EEG replay for '{user}'. Run tools/ssvep_train.py --user {user} and press Train.")
+                return
+            body = path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
 
 
 def bind():

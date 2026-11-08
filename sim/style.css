@@ -150,3 +150,6 @@ button:disabled { opacity: 0.45; cursor: default; }
 }
 
 #loading[hidden] { display: none; }
+
+.buttons .wide { grid-column: 1 / -1; }
+.eeg-trace { width: 100%; height: 44px; display: block; margin: -4px 0 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.25); }
