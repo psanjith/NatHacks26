@@ -1,26 +1,23 @@
-<section id="results" data-transition="fade" style="background:#F6F4EF;color:#14213D;font-family:Inter, Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<section id="results" data-transition="fade" style="background:#F6F4EF;color:#14213D;font-family:Inter, Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:56px">
 <div style="display:flex;flex-direction:column;gap:24px">
 <p style="font-size:28px;font-weight:600;color:#A8470A;letter-spacing:2px;text-transform:uppercase">Results</p>
-<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:600;line-height:1.1;color:#14213D">It finds, locates and fetches reliably</h2>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:600;line-height:1.1;color:#14213D">What we've measured so far</h2>
 </div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:40px 64px">
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:64px">
 <div style="display:flex;flex-direction:column;gap:8px;border-top:4px solid #A8470A;padding:24px 0 0 0">
-<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:96px;font-weight:700;line-height:1.05;color:#A8470A">300 / 300</p>
-<p style="font-size:28px;line-height:1.4;color:#3D4A63">random layouts with every object detected</p>
-</div>
-<div style="display:flex;flex-direction:column;gap:8px;border-top:4px solid #A8470A;padding:24px 0 0 0">
-<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:96px;font-weight:700;line-height:1.05;color:#A8470A">1.1 mm</p>
-<p style="font-size:28px;line-height:1.4;color:#3D4A63">worst position error, from the camera image alone</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:96px;font-weight:700;line-height:1.05;color:#A8470A">24 / 24</p>
+<p style="font-size:28px;line-height:1.4;color:#3D4A63">cubes picked and placed in the basket by our arm design, in physics simulation</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:8px;border-top:4px solid #A8470A;padding:24px 0 0 0">
-<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:96px;font-weight:700;line-height:1.05;color:#A8470A">24 / 25</p>
-<p style="font-size:28px;line-height:1.4;color:#3D4A63">picks in the basket first try; all 25 gripped</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:96px;font-weight:700;line-height:1.05;color:#A8470A">1–2 mm</p>
+<p style="font-size:28px;line-height:1.4;color:#3D4A63">error locating each cube from the camera image alone</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:8px;border-top:4px solid #A8470A;padding:24px 0 0 0">
-<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:96px;font-weight:700;line-height:1.05;color:#A8470A">6 / 6</p>
-<p style="font-size:28px;line-height:1.4;color:#3D4A63">rounds where the arm cleared the whole table</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:96px;font-weight:700;line-height:1.05;color:#A8470A">10.9×</p>
+<p style="font-size:28px;line-height:1.4;color:#3D4A63">jaw-clench signal over resting, on a teammate wearing the real headset</p>
 </div>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#5A6478">Measured in our physics simulation. EEG selection accuracy: [__% over __ trials, team members]. Real arm: [result].</p>
-<aside>(3:20–3:50) The numbers, all from our physics simulation. Across 300 random layouts, every object was detected. Positions computed from the camera image were within 1.1 millimetres. In six full rounds, the arm gripped all 25 cubes it went for, put 24 in the basket on the first try, recovered the one miss, and cleared the table every time. [Add your real EEG accuracy and real-arm result here, labelled as real. If you don’t have them, say plainly that these are simulation results and the hardware test is next.]</aside>
+<p style="font-size:32px;line-height:1.4;color:#14213D">Next to measure: picks on the printed arm, and how often the eyes and the clench pick the right object with real users.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#5A6478">Simulation: our arm's CAD with rigid-body physics. Real: one teammate, one session. First real eye profile: 229 px median error on a laptop screen.</p>
+<aside>(3:25–3:50) The numbers. In our physics simulation, using our own arm's CAD, the arm picked and placed all 24 cubes it went for, across five random scatters, and the camera located each cube to within one or two millimetres. On the real headset, a teammate's held jaw clench came through at almost 11 times the resting level on the jaw electrode, and almost 6 times on the temple, through all that hum. What we haven't measured yet: picks on the printed arm, and end-to-end accuracy with real users. That's next. [If asked about the eye tracker: the first real profile had a median error of 229 pixels on a laptop screen. That's why we zoom in on the objects, pick the nearest one, and always confirm with a clench.]</aside>
 </section>

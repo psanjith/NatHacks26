@@ -1,19 +1,52 @@
 {
   "v": 4,
-  "createdOnFiles": {"v": 1, "at": "2026-11-07T15:40:00Z"},
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-07T15:40:00Z"
+  },
   "lists": "css",
-  "title": "Reach: look at it, and the arm picks it up",
-  "order": ["cover", "problem", "insight", "how", "demo", "engineering", "results", "safety", "next", "close"],
+  "title": "Reach: look at it, clench, and the arm picks it up",
+  "order": [
+    "cover",
+    "problem",
+    "pivot",
+    "insight",
+    "how",
+    "demo",
+    "engineering",
+    "results",
+    "safety",
+    "next",
+    "close"
+  ],
   "cover": "cover",
   "sections": {
-    "s1": {"description": "Who this is for and why it matters", "start": "cover"},
-    "s2": {"description": "The idea and how the system works", "start": "insight"},
-    "s3": {"description": "The live demo and the engineering behind it", "start": "demo"},
-    "s4": {"description": "Built for real users, and what comes next", "start": "safety"}
+    "s1": {
+      "description": "Who this is for and why it matters",
+      "start": "cover"
+    },
+    "s2": {
+      "description": "What our EEG data taught us, and the idea it led to",
+      "start": "pivot"
+    },
+    "s3": {
+      "description": "The live demo and the engineering behind it",
+      "start": "demo"
+    },
+    "s4": {
+      "description": "Built for real users, and what comes next",
+      "start": "safety"
+    }
   },
   "faces": {
-    "space-grotesk": {"family": "Space Grotesk", "href": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"},
-    "inter": {"family": "Inter", "href": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"}
+    "space-grotesk": {
+      "family": "Space Grotesk",
+      "href": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+    },
+    "inter": {
+      "family": "Inter",
+      "href": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+    }
   },
   "designSystems": []
 }

@@ -2,20 +2,22 @@
 <p style="font-size:28px;font-weight:600;color:#F7A145;letter-spacing:2px;text-transform:uppercase">Reach</p>
 <div style="display:flex;flex-direction:column;gap:40px">
 <h1 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:120px;font-weight:700;line-height:1.05;color:#F6F4EF">The scene is the menu.</h1>
-<p style="font-size:44px;line-height:1.3;color:#BFD8D5">Look at what you want. The arm brings it to you.</p>
+<p style="font-size:44px;line-height:1.3;color:#BFD8D5">Look at what you want. Clench. The arm brings it to you.</p>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:end;gap:48px">
 <p style="font-size:32px;line-height:1.4;color:#F6F4EF">We’d love introductions to ALS clinics and<br>occupational therapists to test with real users.</p>
 <p style="font-size:28px;color:#BFD8D5">github.com/psanjith/NatHacks26</p>
 </div>
-<aside>(4:45–5:00) Reach: the scene is the menu. Look at what you want, and the arm brings it to you. We’d love introductions to ALS clinics and occupational therapists so we can test with the people this is for. Thank you — happy to take questions.
+<aside>(4:40–5:00) Reach: the scene is the menu. Look at what you want, clench, and the arm brings it to you. We’d love introductions to ALS clinics and occupational therapists so we can test with the people this is for. Thank you — happy to take questions.
 
 Q&amp;A prep (likely judge questions):
-• Why SSVEP, not motor imagery? Little or no training, and it is one of the most dependable non-invasive signals for picking among a few options.
-• What if the EEG doesn’t work for someone? Every choice also works by switch scanning or an assistant’s keyboard; the arm side is unchanged.
-• Photosensitive epilepsy? Warning first, flicker only while choosing, frequencies 7.5–12 Hz, sessions kept short; screening would be part of user testing.
-• How accurate is it really? Simulation: 300/300 detection, 1.1 mm, 24/25 placements. EEG: [your measured number] — be precise about what is sim and what is real.
-• How is this different from existing assistive arms? They are steered by joystick or voice; Reach needs only gaze and a clench, and the stimuli sit on the real objects instead of a separate screen.
+• Why not SSVEP? We tried it for two days: 185 trials, hum about 1,000× the signal, best 32% on 7 targets. We measured, then changed course. The analysis is in our paper.
+• Is a jaw clench really a BCI? It's muscle (EMG), read by an EEG headset. We say so plainly: we picked the signal that works for the user.
+• Why use the headset if the webcam tracks the eyes? The webcam does all the eye tracking; the headset is the "yes". If looking alone picked things, anything you rested your eyes on would move the arm. A clench lets you keep looking at the object while you confirm, and the camera and the jaw electrodes must both agree before anything moves.
+• How accurate is the eye tracker? First real profile: median 229 px error across 9 dots on a laptop screen. So we zoom in on the objects, pick the nearest one, and always confirm with a clench. It corrects its drift after every pick.
+• What if someone can't clench, e.g. bulbar ALS? Any switch that sends a key press works, and the eye-corner glance backup needs no clench. Next: a blink or eyebrow switch.
+• What about talking or looking away? The webcam sees the jaw moving or the head turned, and the clench is ignored.
+• How is this different from existing assistive arms? They're steered by joystick or voice. Reach needs only eye gaze and a clench, and the arm finds the object itself.
 • What would you do with the prize funding? User testing with partners, a stronger shoulder servo and the safety review.
-• Is the code all from this weekend? Yes — [confirm].</aside>
+• Is the code all from this weekend? Yes, all of it. The arm is printed and being assembled now.</aside>
 </section>
