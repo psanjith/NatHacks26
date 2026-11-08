@@ -3,7 +3,7 @@
   python tools/ssvep_export.py --user nav
 
 Writes to logs/users/<user>/ (git-ignored):
-  by_hz/<freq>Hz/<session>_trial_<id>_<test>.csv   one file per trial: time_s (0 = flicker onset), O1, Oz, O2, T7 in uV
+  by_hz/<freq>Hz/<session>_trial_<id>_<test>.csv   one file per trial: time_s (0 = flicker onset), O1, Oz, O2 in uV (T7 isn't used)
   dataset.npz       every trial in one file: x (trials, 4, n) padded with NaN, freq, test, session, id, onset, n_on, fs
   sim_replay.json   for the sim's "Pick with Nav's EEG": each trial at the model's 4 frequencies with the
                     decision a model that never saw that trial makes (cross-validated), so the replay is honest.
@@ -61,9 +61,9 @@ def export(udir, trials, ssvep_idx, model=None, fb_of=None):
         with open(os.path.join(d, f"{t['session']}_trial_{t['id']:03d}_{t['test']}.csv"), "w") as fh:
             fh.write(f"# freq_hz={t['target_freq']:.4f} test={t['test']} spacing={t.get('spacing')} fs={fs} "
                      f"flicker_s={t['n_on'] / fs:.3f} decoder_said={t.get('fb_pred')}\n")
-            fh.write("time_s," + ",".join(NAMES) + "\n")
+            fh.write("time_s," + ",".join(NAMES[c] for c in ssvep_idx) + "\n")
             for i in range(x.shape[1]):
-                fh.write(f"{tt[i]:.3f}," + ",".join(f"{v:.3f}" for v in x[:, i]) + "\n")
+                fh.write(f"{tt[i]:.3f}," + ",".join(f"{v:.3f}" for v in x[ssvep_idx, i]) + "\n")
         per_hz[name] = per_hz.get(name, 0) + 1
     # 2) everything in one array file
     n = max(t["x"].shape[1] for t in labelled)

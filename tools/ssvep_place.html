@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Electrode Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07090d; --s1: #0e1218; --s2: #141922; --s3: #1b2130; --line: rgba(255,255,255,.07); --line2: rgba(255,255,255,.12);
+    --text: #eef1f6; --muted: #8a93a6; --dim: #5d6578;
+    --good: #34d399; --warn: #fbbf24; --bad: #f87171; --cue: #ff8a3d; --info: #5cc8ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font: 15px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  body { background: radial-gradient(1000px 500px at 0% -10%, rgba(255,138,61,.08), transparent 60%), var(--bg); }
+  button, select, input { font: inherit; color: var(--text); background: var(--s3); border: 1px solid var(--line2); border-radius: 12px; padding: 10px 14px; }
+  button { cursor: pointer; font-weight: 600; } button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: linear-gradient(180deg, #ff9a52, #ff7a26); border-color: transparent; color: #1c0d00; font-weight: 800; box-shadow: 0 6px 20px -8px rgba(255,138,61,.7); }
+  input { width: 100%; }
+  header { display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .logo { width: 30px; height: 30px; border-radius: 9px; background: conic-gradient(from 200deg, var(--cue), #ffd166, var(--info), var(--cue)); display: grid; place-items: center; }
+  .logo::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--bg); }
+  header h1 { margin: 0; font-size: 17px; font-weight: 800; } header h1 span { color: var(--muted); font-weight: 500; }
+  header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; } header a { color: var(--muted); text-decoration: none; } header a:hover { color: var(--text); }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 99px; background: var(--s1); border: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+  .pill.ok { color: var(--text); } .pill.ok::before { background: var(--good); } .pill.bad::before { background: var(--bad); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; padding: 20px 24px 40px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 1050px) { main { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .card { background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+  .card h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 12px; font-weight: 700; display: flex; justify-content: space-between; }
+  .card h2 small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+  .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label.f { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .chs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .chs button { padding: 12px 8px; text-align: center; }
+  .chs button b { display: block; font-size: 18px; } .chs button small { color: var(--muted); font-size: 11px; }
+  .chs button.on { background: rgba(255,138,61,.12); border-color: rgba(255,138,61,.6); }
+
+  /* stage: pure black for flicker */
+  #stage { position: relative; background: #000; border-radius: 16px; min-height: 66vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #111; }
+  #say { font-size: 30px; font-weight: 800; text-align: center; letter-spacing: -.01em; z-index: 2; padding: 0 20px; }
+  #say2 { color: #9aa3b5; font-size: 16px; margin-top: 8px; text-align: center; z-index: 2; min-height: 24px; }
+  #count { font-size: 64px; font-weight: 800; color: var(--cue); margin-top: 10px; z-index: 2; font-variant-numeric: tabular-nums; min-height: 78px; }
+  #sq { position: absolute; width: min(52vh, 52vw); height: min(52vh, 52vw); background: #000; border-radius: 10px; display: none; }
+  #dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 10px #ff3b3b; display: none; z-index: 3; }
+  .bar { position: absolute; left: 0; bottom: 0; height: 5px; background: linear-gradient(90deg, var(--cue), #ffd166); width: 0; transition: width .25s linear; }
+  .plan { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .plan span { padding: 4px 10px; border-radius: 8px; background: var(--s3); color: var(--muted); font-size: 12px; font-weight: 600; }
+  .plan span.on { background: var(--cue); color: #1c0d00; } .plan span.done { background: rgba(52,211,153,.15); color: var(--good); }
+
+  /* result */
+  .verdict { display: flex; gap: 16px; align-items: center; padding: 16px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); }
+  .verdict .ic { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; font-weight: 800; color: #0b0f17; flex: none; }
+  .verdict.good .ic { background: var(--good); box-shadow: 0 0 24px rgba(52,211,153,.5); } .verdict.warn .ic { background: var(--warn); } .verdict.bad .ic { background: var(--bad); }
+  .verdict b { font-size: 20px; display: block; } .verdict span { color: var(--muted); }
+  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .m { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .m .t { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+  .m .v { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+  .m .track { height: 8px; border-radius: 99px; background: var(--s3); margin: 8px 0 6px; position: relative; overflow: hidden; }
+  .m .track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; }
+  .m .track em { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; opacity: .5; }
+  .m small { color: var(--muted); font-size: 12px; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); font-size: 13px; text-align: left; }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  tr.best td { background: rgba(52,211,153,.1); }
+  .live { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .live div { background: var(--s1); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .live b { display: block; font-size: 20px; font-weight: 800; } .live span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  canvas { width: 100%; display: block; background: var(--s1); border-radius: 12px; border: 1px solid var(--line); margin-top: 10px; }
+  .imp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .imp div { background: var(--s1); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .imp b { display: block; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; } .imp span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .imp small { display: block; font-size: 12px; margin-top: 2px; }
+  button.imp-on { background: rgba(92,200,255,.15); border-color: rgba(92,200,255,.6); }
+  ol.how { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; } ol.how li { margin: 4px 0; } ol.how b { color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"></div>
+  <h1>Electrode finder <span>· is this spot over the visual cortex?</span></h1>
+  <nav><a href="/">Trainer</a><a href="/signal">Signal check</a><span class="pill" id="pConn">connecting…</span></nav>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <div class="row" style="margin-bottom:14px">
+        <div>
+          <label class="f">Channel being tested</label>
+          <div class="chs" id="chs" style="margin-top:6px">
+            <button data-ch="0" class="on"><b>1</b><small>O1 slot</small></button>
+            <button data-ch="1"><b>2</b><small>Oz slot</small></button>
+            <button data-ch="2"><b>3</b><small>O2 slot</small></button>
+          </div>
+        </div>
+        <label class="f">Where is it right now?
+          <input id="label" placeholder="e.g. midline, 3 cm above bump">
+          <span class="hint" style="margin:0">Name the spot so you can compare tries.</span>
+        </label>
+      </div>
+      <div id="stage">
+        <div id="sq"></div><div id="dot"></div>
+        <div id="say">Ready</div>
+        <div id="say2">About 1 minute. Nav sits still, ~60 cm from the screen. Turn the sound on: beeps tell him when to close and open his eyes.</div>
+        <div id="count"></div>
+        <button class="primary" id="go" style="z-index:2;margin-top:6px;padding:14px 28px;font-size:17px">Start test</button>
+        <div class="bar" id="bar"></div>
+      </div>
+      <div class="plan" id="plan"></div>
+    </section>
+
+    <section class="card" id="resCard" hidden>
+      <h2>Result <small id="resWhere"></small></h2>
+      <div id="res"></div>
+    </section>
+
+    <section class="card">
+      <h2>Spots tried <small>best per channel highlighted</small></h2>
+      <div id="hist"><p class="hint" style="margin:0">No tests yet.</p></div>
+      <button id="clear" style="margin-top:12px;padding:8px 12px;font-size:13px">Clear list</button>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card">
+      <h2>Live · <span id="liveName" style="margin-left:4px">O1 slot</span> <small>last 4 s</small></h2>
+      <div class="live">
+        <div><b id="lHum">–</b><span>hum µV</span></div>
+        <div><b id="lEeg">–</b><span>EEG µV</span></div>
+        <div><b id="lAlpha">–</b><span>alpha now</span></div>
+      </div>
+      <canvas id="cvTrace" height="120"></canvas>
+      <p class="hint">Trace is filtered (1–45 Hz). With eyes closed and a good spot you should see the wave turn into a steady ~10 per second ripple.</p>
+    </section>
+    <section class="card">
+      <h2>Impedance <small id="impNote">electrode ↔ skin</small></h2>
+      <div class="imp">
+        <div><span id="impName">O1 slot</span><b id="impCh">–</b><small id="impChW"></small></div>
+        <div><span>REF</span><b id="impRef">–</b><small id="impRefW"></small></div>
+      </div>
+      <button id="impBtn" style="width:100%;margin-top:10px">Measure impedance live</button>
+      <p class="hint">Good under 50 kΩ. Watch it drop as you press the electrode in. EEG pauses while it measures, so stop it before running the test. It can’t see the forehead ground.</p>
+    </section>
+    <section class="card">
+      <h2>What the test checks</h2>
+      <ol class="how">
+        <li><b>Eyes closed → alpha.</b> Closing the eyes makes a strong ~10 Hz rhythm at the back of the head. Good spot: at least <b>2×</b> stronger than eyes open.</li>
+        <li><b>Flicker → SSVEP.</b> A big square flashing 7.5 times a second should show up at 7.5 Hz (and 15 Hz). Good spot: at least <b>3×</b> more than with no flicker.</li>
+        <li>Only the visual cortex does both. If neither shows up, the electrode is too high, off to the side, or not touching skin.</li>
+      </ol>
+      <p class="hint">Test one channel at a time. Move the electrode ~1 cm, rename the spot, test again. The list ranks the spots.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const post = (u, b) => fetch(u, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(b || {})}).then(r => r.json());
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const NAMES = ["O1 slot", "Oz slot", "O2 slot"], FREQ = 7.5;
+let ch = 0, running = false, refresh = 60, frameMs = 1000 / 60, last = null;
+
+// ---------- channel choice
+$("chs").querySelectorAll("button").forEach(b => b.onclick = () => {
+  if (running) return;
+  ch = +b.dataset.ch; $("chs").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  $("liveName").textContent = NAMES[ch];
+});
+
+// ---------- beeps (eyes are closed, so sound is the cue)
+let ac = null;
+function beep(n = 1, hz = 880) {
+  ac ||= new (window.AudioContext || window.webkitAudioContext)();
+  for (let i = 0; i < n; i++) {
+    const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + i * 0.22;
+    o.frequency.value = hz; o.connect(g); g.connect(ac.destination);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    o.start(t); o.stop(t + 0.2);
+  }
+}
+
+// ---------- frame-locked flicker
+let fl = null;
+const wall = ts => Date.now() - (performance.now() - ts);
+function loop(ts) {
+  if (fl) {
+    if (!fl.t0) { fl.t0 = ts; fl.onset = wall(ts); }
+    const el = ts - fl.t0;
+    if (el >= fl.ms) { $("sq").style.background = "#000"; const r = fl.res, o = {onset: fl.onset / 1000, offset: wall(ts) / 1000}; fl = null; r(o); }
+    else if (fl.P) { const k = Math.round(el / frameMs); $("sq").style.background = (k % fl.P) < fl.P / 2 ? "#fff" : "#000"; }
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+const timed = (ms, freq) => new Promise(res => { fl = {ms, res, t0: 0, P: freq ? Math.round(refresh / freq) : null}; });
+async function measureRefresh() {
+  const ts = [];
+  await new Promise(r => { const f = t => { ts.push(t); ts.length < 61 ? requestAnimationFrame(f) : r(); }; requestAnimationFrame(f); });
+  const d = ts.slice(1).map((t, i) => t - ts[i]).sort((a, b) => a - b);
+  refresh = Math.round(1000 / d[Math.floor(d.length / 2)]); frameMs = 1000 / refresh;
+}
+measureRefresh();
+
+// ---------- the protocol
+const PLAN = [
+  {k: "open", s: 10, say: "Eyes open", sub: "Look at the red dot. Relax, don’t blink much."},
+  {k: "closed", s: 10, say: "Close your eyes", sub: "Keep them closed until the double beep. Relax."},
+  {k: "open", s: 10, say: "Eyes open", sub: "Look at the red dot."},
+  {k: "closed", s: 10, say: "Close your eyes", sub: "Keep them closed until the double beep."},
+  {k: "flicker", s: 10, say: "", sub: "Stare at the red dot in the middle of the square."},
+  {k: "open", s: 6, say: "Rest, eyes open", sub: "Look at the red dot."},
+  {k: "flicker", s: 10, say: "", sub: "Stare at the red dot in the middle of the square."},
+];
+const planHtml = (i) => PLAN.map((p, j) => `<span class="${j < i ? "done" : j === i ? "on" : ""}">${p.k === "flicker" ? "flicker" : p.k === "closed" ? "eyes closed" : "eyes open"} ${p.s}s</span>`).join("");
+$("plan").innerHTML = planHtml(-1);
+
+async function run() {
+  if (running) return;
+  running = true; $("go").hidden = true; $("resCard").hidden = true;
+  $("chs").querySelectorAll("button").forEach(b => b.disabled = true);
+  beep(1, 660);
+  const label = $("label").value.trim() || `try ${hist().filter(h => h.ch === ch).length + 1}`;
+  const segs = [];
+  const total = PLAN.reduce((a, p) => a + p.s, 0); let doneS = 0;
+  for (let i = 0; i < PLAN.length && running; i++) {
+    const p = PLAN[i];
+    $("plan").innerHTML = planHtml(i);
+    $("say").textContent = p.say; $("say2").textContent = p.sub;
+    $("sq").style.display = p.k === "flicker" ? "block" : "none";
+    $("dot").style.display = p.k === "closed" ? "none" : "block";
+    for (const id of ["say", "say2", "count"]) $(id).style.visibility = p.k === "flicker" ? "hidden" : "visible";
+    if (p.k === "closed") beep(1, 520); else if (i && PLAN[i - 1].k === "closed") beep(2, 880);
+    const tick = setInterval(() => { $("count").textContent = Math.max(0, Math.ceil(p.s - (performance.now() - t0) / 1000)); $("bar").style.width = `${100 * (doneS + (performance.now() - t0) / 1000) / total}%`; }, 100);
+    const t0 = performance.now();
+    const r = await timed(p.s * 1000, p.k === "flicker" ? FREQ : null);
+    clearInterval(tick); doneS += p.s;
+    segs.push(post("/api/place/segment", {ch, kind: p.k, onset: r.onset, offset: r.offset, freq: FREQ, label}));
+  }
+  const aborted = !running;
+  if (!aborted) beep(3, 990);
+  $("sq").style.display = "none"; $("dot").style.display = "none";
+  for (const id of ["say", "say2", "count"]) $(id).style.visibility = "visible";
+  $("say").textContent = "Scoring…"; $("say2").textContent = ""; $("count").textContent = ""; $("plan").innerHTML = planHtml(PLAN.length);
+  if (aborted) {
+    $("say").textContent = "Stopped"; $("say2").textContent = "Nothing scored."; $("go").hidden = false; $("bar").style.width = "0";
+    $("chs").querySelectorAll("button").forEach(b => b.disabled = false); return;
+  }
+  const out = await Promise.all(segs);
+  running = false; $("go").hidden = false; $("go").textContent = "Test again"; $("bar").style.width = "0";
+  $("chs").querySelectorAll("button").forEach(b => b.disabled = false);
+  const err = out.find(o => o.error);
+  if (err) { $("say").textContent = "Couldn’t score"; $("say2").textContent = err.error; return; }
+  score(out, label);
+}
+
+const mean = a => a.reduce((x, y) => x + y, 0) / Math.max(a.length, 1);
+function score(out, label) {
+  const open = out.filter(o => o.kind === "open"), closed = out.filter(o => o.kind === "closed"), fl = out.filter(o => o.kind === "flicker");
+  const alphaX = mean(closed.map(o => o.alpha)) / Math.max(mean(open.map(o => o.alpha)), 1e-12);
+  const ssv = o => o.p_f + 0.5 * o.p_2f;
+  const flickX = mean(fl.map(ssv)) / Math.max(mean(open.map(ssv)), 1e-12);
+  const snr = mean(fl.map(o => o.snr_f));
+  const hum = mean(out.map(o => o.hum_uv));
+  const aG = alphaX >= 2, aW = alphaX >= 1.4, fG = flickX >= 3 && snr >= 2, fW = flickX >= 1.7;
+  let v;
+  if (fG && aG) v = ["good", "✓", "Right spot", "Clear alpha and a clear flicker response: this electrode is over the visual cortex."];
+  else if (fG) v = ["good", "✓", "Good for SSVEP", "Strong flicker response. Alpha is weaker, which varies by person: keep this spot."];
+  else if (aG && fW) v = ["warn", "~", "Close", "Over the back of the head (good alpha) but the flicker response is weak. Try ~1 cm lower or closer to the midline, and make sure Nav stares at the dot."];
+  else if (aG) v = ["warn", "~", "Back of the head, weak flicker", "Alpha is there, so contact and area are roughly right. Try ~1 cm lower toward the bump, and check the screen is 60 Hz."];
+  else if (aW || fW) v = ["warn", "~", "Weak", "Something is there but faint. Press the electrode in, part the hair, add saline, then try ~1 cm lower."];
+  else v = ["bad", "✗", "Not over the visual cortex (or no contact)", "No alpha and no flicker response. Move it lower, toward the bony bump, and check it touches skin."];
+  if (hum > 300) v[3] += ` Hum was high (${Math.round(hum)} µV), which can hide both.`;
+  const rec = {t: Date.now(), ch, label, alphaX: +alphaX.toFixed(2), flickX: +flickX.toFixed(2), snr: +snr.toFixed(2), hum: Math.round(hum), verdict: v[2], level: v[0]};
+  const H = hist(); H.push(rec); saveHist(H);
+  $("say").textContent = v[2]; $("say2").textContent = "See the result below.";
+  $("resWhere").textContent = `${NAMES[ch]} · ${label}`;
+  const meter = (t, x, good, max, note) => { const p = Math.min(100, 100 * Math.log(Math.max(x, 0.5) / 0.5) / Math.log(max / 0.5)), gp = 100 * Math.log(good / 0.5) / Math.log(max / 0.5);
+    const c = x >= good ? "var(--good)" : x >= good * 0.7 ? "var(--warn)" : "var(--bad)";
+    return `<div class="m"><div class="t">${t}</div><div class="v" style="color:${c}">${x.toFixed(1)}×</div><div class="track"><i style="width:${p}%;background:${c}"></i><em style="left:${gp}%"></em></div><small>${note}</small></div>`; };
+  $("res").innerHTML = `<div class="verdict ${v[0]}"><div class="ic">${v[1]}</div><div><b>${v[2]}</b><span>${v[3]}</span></div></div>
+    <div class="meters">${meter("Alpha, eyes closed vs open", alphaX, 2, 8, "good spot: 2× or more")}${meter("Flicker response vs rest", flickX, 3, 15, `good spot: 3× or more · peak SNR ${snr.toFixed(1)}`)}</div>
+    <p class="hint">Hum during the test: ${Math.round(hum)} µV. Segments scored: ${out.length}.</p>`;
+  $("resCard").hidden = false; renderHist();
+}
+
+// ---------- history (kept in this browser)
+const hist = () => { try { return JSON.parse(localStorage.getItem("reach.place") || "[]"); } catch (e) { return []; } };
+const saveHist = H => { try { localStorage.setItem("reach.place", JSON.stringify(H)); } catch (e) {} };
+function renderHist() {
+  const H = hist();
+  if (!H.length) { $("hist").innerHTML = `<p class="hint" style="margin:0">No tests yet.</p>`; return; }
+  const best = {}; H.forEach((h, i) => { const sc = h.flickX + 0.5 * h.alphaX; if (!best[h.ch] || sc > best[h.ch].sc) best[h.ch] = {i, sc}; });
+  $("hist").innerHTML = `<table><tr><th>channel</th><th>spot</th><th>alpha</th><th>flicker</th><th>verdict</th></tr>` +
+    H.map((h, i) => `<tr class="${best[h.ch].i === i ? "best" : ""}"><td>${NAMES[h.ch]}</td><td>${esc(h.label)}</td>
+      <td class="${h.alphaX >= 2 ? "good" : h.alphaX >= 1.4 ? "warn" : "bad"}">${h.alphaX}×</td>
+      <td class="${h.flickX >= 3 ? "good" : h.flickX >= 1.7 ? "warn" : "bad"}">${h.flickX}×</td>
+      <td class="${h.level}">${h.verdict}</td></tr>`).reverse().join("") + `</table>`;
+}
+$("clear").onclick = () => { saveHist([]); renderHist(); };
+renderHist();
+
+// ---------- live view of the chosen channel
+function drawTrace(tr) {
+  const cv = $("cvTrace"), r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1, H = +(cv.dataset.h ||= cv.getAttribute("height"));
+  cv.style.height = H + "px";
+  if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(H * dpr); }
+  const ctx = cv.getContext("2d"), W = r.width; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  if (!tr || !tr.length) return;
+  const s = [...tr].map(Math.abs).sort((a, b) => a - b), sc = Math.max(10, s[Math.floor(s.length * .95)]);
+  ctx.strokeStyle = "#ffb07a"; ctx.lineWidth = 1.3; ctx.beginPath();
+  tr.forEach((v, i) => { const x = W * i / (tr.length - 1), y = H / 2 - (H / 2.4) * Math.max(-1, Math.min(1, v / sc)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  ctx.stroke(); ctx.fillStyle = "#5d6578"; ctx.font = "11px Inter, sans-serif"; ctx.fillText(`±${Math.round(sc)} µV`, 6, 14);
+}
+let impOn = false;
+const kLevel = k => k == null ? "" : k < 50 ? "good" : k < 150 ? "warn" : "bad";
+const kWord = k => k == null ? "" : k < 50 ? "good" : k < 150 ? "okay" : "poor contact";
+function renderImp(imp) {
+  impOn = imp.on;
+  $("impBtn").disabled = !imp.available || running;
+  $("impBtn").textContent = imp.on ? "Stop & resume EEG" : "Measure impedance live";
+  $("impBtn").classList.toggle("imp-on", imp.on);
+  $("impNote").textContent = imp.on ? "measuring live…" : imp.settling ? "EEG settling…" : "electrode ↔ skin";
+  $("go").disabled = imp.on || imp.settling;
+  $("impName").textContent = NAMES[ch];
+  if (!imp.on) return;
+  const c = imp.chans[ch] || {}, r = imp.chans[imp.chans.length - 1] || {};
+  for (const [id, k] of [["impCh", c.kohm], ["impRef", r.kohm]]) {
+    $(id).textContent = k == null ? "…" : `${k.toFixed(1)} kΩ`; $(id).className = kLevel(k);
+    $(id + "W").textContent = kWord(k); $(id + "W").className = kLevel(k);
+  }
+}
+$("impBtn").onclick = async () => {
+  $("impBtn").disabled = true;
+  const r = await post("/api/impedance", {on: !impOn});
+  if (r.error) { $("impNote").textContent = r.error; }
+  $("impBtn").disabled = false;
+};
+const es = new EventSource("/stream");
+es.onmessage = e => {
+  const s = JSON.parse(e.data);
+  if (s.imp) renderImp(s.imp);
+  const stale = s.stale_s == null || s.stale_s > 1.5;
+  $("pConn").textContent = stale ? "no data" : s.paused ? "impedance mode: EEG paused" : `${s.source} · live`;
+  $("pConn").className = "pill " + (stale || s.paused ? "bad" : "ok");
+  if (!s.quality) return;
+  const q = s.quality[ch];
+  $("lHum").textContent = Math.round(q.hum_uv); $("lHum").className = q.hum_uv < 30 ? "good" : q.hum_uv < 100 ? "warn" : "bad";
+  $("lEeg").textContent = Math.round(q.eeg_uv); $("lEeg").className = q.eeg_uv < 30 ? "good" : q.eeg_uv < 60 ? "warn" : "bad";
+  $("lAlpha").textContent = q.alpha_x.toFixed(1) + "×";
+  if (s.traces) drawTrace(s.traces[ch]);
+};
+es.onerror = () => { $("pConn").textContent = "trainer not running"; $("pConn").className = "pill bad"; };
+$("go").onclick = run;
+addEventListener("keydown", e => { if (e.key === "Escape" && running) { running = false; if (fl) { fl.ms = 0; } } });
+</script>
+</body>
+</html>

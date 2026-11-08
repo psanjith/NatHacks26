@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Reach Signal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07090d; --s1: #0e1218; --s2: #141922; --s3: #1b2130; --line: rgba(255,255,255,.07); --line2: rgba(255,255,255,.12);
+    --text: #eef1f6; --muted: #8a93a6; --dim: #5d6578;
+    --good: #34d399; --warn: #fbbf24; --bad: #f87171; --cue: #ff8a3d; --info: #5cc8ff;
+    --c1: #ff8a3d; --c2: #5cc8ff; --c3: #c084fc;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font: 16px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: radial-gradient(1000px 500px at 0% -10%, rgba(255,138,61,.08), transparent 60%),
+                radial-gradient(900px 500px at 100% 0%, rgba(92,200,255,.06), transparent 60%), var(--bg); }
+  button { font: inherit; color: var(--text); background: var(--s3); border: 1px solid var(--line2); border-radius: 14px;
+    padding: 14px 18px; cursor: pointer; font-weight: 600; touch-action: manipulation; }
+  button:disabled { opacity: .4; }
+  button.imp-on { background: rgba(92,200,255,.15); border-color: rgba(92,200,255,.6); }
+
+  header { display: flex; align-items: center; gap: 14px; padding: 16px 20px; flex-wrap: wrap; }
+  .logo { width: 34px; height: 34px; border-radius: 10px; background: conic-gradient(from 200deg, var(--cue), #ffd166, var(--info), var(--cue)); display: grid; place-items: center; }
+  .logo::after { content: ""; width: 13px; height: 13px; border-radius: 50%; background: var(--bg); }
+  header h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+  header h1 span { color: var(--muted); font-weight: 500; }
+  .pills { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; border-radius: 99px; background: var(--s1); border: 1px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 500; }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .pill.ok { color: var(--text); } .pill.ok::before { background: var(--good); box-shadow: 0 0 8px var(--good); }
+  .pill.bad::before { background: var(--bad); box-shadow: 0 0 8px var(--bad); } .pill.live::before { background: var(--cue); box-shadow: 0 0 8px var(--cue); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 0 20px 28px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .card { background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: 20px; padding: 20px; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 14px; font-weight: 700;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .card h2 small { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; }
+
+  .hero { display: flex; gap: 18px; align-items: center; }
+  .hero .dot { width: 64px; height: 64px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 28px; font-weight: 800; color: #0b0f17; background: var(--dim); }
+  .hero.good .dot { background: var(--good); box-shadow: 0 0 30px rgba(52,211,153,.5); }
+  .hero.warn .dot { background: var(--warn); box-shadow: 0 0 30px rgba(251,191,36,.4); }
+  .hero.bad .dot { background: var(--bad); box-shadow: 0 0 30px rgba(248,113,113,.55); animation: pulse 1.6s infinite; }
+  .hero.info .dot { background: var(--info); box-shadow: 0 0 30px rgba(92,200,255,.45); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 6px transparent; } }
+  .hero b { display: block; font-size: 24px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+  .hero span { color: var(--muted); font-size: 15px; }
+
+  .hrow { display: grid; grid-template-columns: 46px 1fr 104px; gap: 14px; align-items: center; margin: 14px 0; }
+  .hrow .nm { font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 7px; }
+  .hrow .nm i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .hrow .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 750; font-size: 20px; line-height: 1.1; }
+  .hrow .v small { display: block; color: var(--muted); font-weight: 500; font-size: 11px; }
+  .meter { position: relative; height: 20px; border-radius: 99px; overflow: hidden;
+    background: linear-gradient(90deg, rgba(52,211,153,.18) 0 var(--z1), rgba(251,191,36,.18) var(--z1) var(--z2), rgba(248,113,113,.18) var(--z2) 100%); }
+  .meter .f { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; transition: width .35s ease, background .35s; }
+  .meter .f.good { background: var(--good); } .meter .f.warn { background: var(--warn); } .meter .f.bad { background: var(--bad); }
+  .scale { display: grid; grid-template-columns: 46px 1fr 104px; gap: 14px; color: var(--dim); font-size: 11px; }
+  .scale > div { position: relative; height: 14px; } .scale > div > span { position: absolute; transform: translateX(-50%); }
+  canvas { width: 100%; display: block; background: var(--s1); border-radius: 12px; border: 1px solid var(--line); }
+  .legend { display: flex; gap: 14px; color: var(--muted); font-size: 12px; margin-top: 8px; flex-wrap: wrap; }
+  .legend i { width: 10px; height: 3px; display: inline-block; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+
+  .where .tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 7px; margin-bottom: 8px; background: var(--s3); color: var(--muted); }
+  .where .tag.shared { background: rgba(92,200,255,.14); color: var(--info); } .where .tag.one { background: rgba(251,191,36,.14); color: var(--warn); } .where .tag.low { background: rgba(52,211,153,.14); color: var(--good); }
+  .where p { margin: 0; font-size: 16px; } .where .hint { margin-top: 8px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  .fixes { list-style: none; margin: 0; padding: 0; counter-reset: fx; }
+  .fixes li { position: relative; padding: 14px 14px 14px 54px; border-radius: 14px; margin: 10px 0; background: var(--s1); border: 1px solid var(--line); cursor: pointer; color: var(--muted); font-size: 14px; transition: opacity .2s; }
+  .fixes li b { color: var(--text); font-size: 16px; display: block; font-weight: 700; margin-bottom: 2px; }
+  .fixes li::before { counter-increment: fx; content: counter(fx); position: absolute; left: 14px; top: 15px; width: 26px; height: 26px; border-radius: 8px; background: var(--s3); color: var(--muted); font-size: 13px; font-weight: 800; display: grid; place-items: center; }
+  .fixes li.none { cursor: default; padding-left: 14px; } .fixes li.none::before { display: none; }
+  .fixes li.done { opacity: .45; } .fixes li.done::before { content: "✓"; background: var(--good); color: #0b0f17; }
+  .empty { color: var(--muted); padding: 6px 0; }
+
+  .irow { display: grid; grid-template-columns: 16px 52px 1fr auto; gap: 12px; align-items: center; padding: 14px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); margin: 10px 0; }
+  .irow .d { width: 12px; height: 12px; border-radius: 50%; background: var(--dim); }
+  .irow .d.good { background: var(--good); box-shadow: 0 0 8px var(--good); } .irow .d.warn { background: var(--warn); } .irow .d.bad { background: var(--bad); box-shadow: 0 0 8px var(--bad); }
+  .irow .nm { font-weight: 800; font-size: 17px; } .irow .lv { color: var(--muted); font-size: 13px; }
+  .irow .k { font-variant-numeric: tabular-nums; font-weight: 750; font-size: 20px; text-align: right; }
+
+  .act { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .act div { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 12px; min-width: 0; }
+  .act b { display: block; font-size: 22px; font-weight: 800; } .act span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  /* run sheet */
+  .run .now-lbl { font-size: 11px; font-weight: 800; letter-spacing: .1em; color: var(--cue); text-transform: uppercase; }
+  .steps { list-style: none; margin: 0; padding: 0; }
+  .st { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 12px; border-radius: 14px; margin: 8px 0; border: 1px solid transparent; transition: background .3s, border-color .3s, opacity .3s; }
+  .st .ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: 14px; background: var(--s3); color: var(--muted); }
+  .st b { font-size: 16px; font-weight: 700; display: block; }
+  .st .sub { color: var(--muted); font-size: 13px; }
+  .st .set { display: none; margin-top: 8px; }
+  .st .set div { display: inline-block; margin: 3px 6px 3px 0; padding: 4px 10px; border-radius: 8px; background: var(--s3); font-size: 13px; font-weight: 600; }
+  .st .set div span { color: var(--muted); font-weight: 500; margin-right: 4px; }
+  .st .prog { height: 6px; border-radius: 3px; background: var(--s3); margin-top: 10px; overflow: hidden; display: none; }
+  .st .prog i { display: block; height: 100%; background: linear-gradient(90deg, var(--cue), #ffd166); border-radius: 3px; transition: width .4s; }
+  .st.done { opacity: .55; padding-top: 8px; padding-bottom: 8px; }
+  .st.done .ic { background: var(--good); color: #0b0f17; }
+  .st.done .sub, .st.done pre.cmd { display: none; }
+  .st.now { background: rgba(255,138,61,.08); border-color: rgba(255,138,61,.5); }
+  .st.now .ic { background: var(--cue); color: #1c0d00; }
+  .st.now .set, .st.now .prog { display: block; }
+  .st.manual { cursor: pointer; }
+  .st.manual.now .tap { display: inline-block; }
+  .tap { display: none; margin-top: 10px; padding: 8px 14px; border-radius: 10px; background: var(--cue); color: #1c0d00; font-weight: 700; font-size: 14px; }
+  .st.later .ic { background: transparent; border: 1px solid var(--line2); }
+  pre.cmd { margin: 8px 0 0; padding: 10px 12px; border-radius: 10px; background: #05070a; border: 1px solid var(--line2); font: 12px/1.5 ui-monospace, Menlo, monospace; color: #d6deeb; white-space: pre-wrap; word-break: break-all; }
+  .alldone { text-align: center; padding: 18px; border-radius: 14px; background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.4); color: var(--good); font-weight: 700; font-size: 17px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"></div>
+  <h1>Reach <span>· signal check</span></h1>
+  <div class="pills">
+    <span class="pill" id="pConn">connecting…</span>
+    <span class="pill" id="pTest">no test running</span>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <div class="hero" id="hero"><div class="dot">…</div><div><b>Waiting for data</b><span>Connecting to the trainer on the laptop</span></div></div>
+    </section>
+
+    <section class="card">
+      <h2>60 Hz hum <small>live · unfiltered · lower is better</small></h2>
+      <div id="humRows"><p class="empty">Waiting for signal…</p></div>
+      <div class="scale" id="scaleRow"><span></span><div id="humScale"></div><span></span></div>
+      <h2 style="margin-top:22px">Last 2 minutes <small>did the fix work?</small></h2>
+      <canvas id="cvHist" height="150"></canvas>
+      <div class="legend"><span><i style="background:var(--c1)"></i>O1</span><span><i style="background:var(--c2)"></i>Oz</span><span><i style="background:var(--c3)"></i>O2</span><span><i style="background:#facc15"></i>T7</span><span style="margin-left:auto">dashed = 30 µV target</span></div>
+    </section>
+
+    <section class="card where" id="whereCard">
+      <h2>Where it’s coming from</h2>
+      <div id="where"><p class="empty">Waiting for signal…</p></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card run">
+      <h2>Run sheet <small id="runNote">ticks itself off as you go</small></h2>
+      <ol class="steps" id="steps"></ol>
+      <div class="controls" style="display:flex;gap:10px;margin-top:6px">
+        <button id="runReset" style="padding:9px 14px;font-size:13px">Start over</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Fixes to try <small id="fixNote">tap a step when done</small></h2>
+      <ol class="fixes" id="fixes"></ol>
+      <button id="resetFixes" style="padding:10px 14px;font-size:14px">Clear ticks</button>
+    </section>
+
+    <section class="card">
+      <h2>Impedance <small id="impNote">electrode ↔ skin</small></h2>
+      <div id="impRows"><p class="empty" style="margin:0">Pauses Nav’s EEG while it measures, so only use it between tests.</p></div>
+      <button id="impBtn" style="width:100%;margin-top:12px">Measure impedance live</button>
+      <p class="hint">Ganglion’s own check: O1, Oz, O2 and REF. It <b>can’t see the forehead ground</b>, so good numbers here don’t rule out a bad ground.</p>
+    </section>
+
+    <section class="card">
+      <h2>Nav’s session <small id="who"></small></h2>
+      <div class="act">
+        <div><b id="aN">–</b><span>trials today</span></div>
+        <div><b id="aR">–</b><span>right (live)</span></div>
+        <div><b id="aL" style="font-size:16px;line-height:1.6">–</b><span>last trial</span></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const post = (url, body) => fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})}).then(r => r.json());
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const fmt = f => (+f).toFixed(2).replace(/\.?0+$/, "");
+const COLORS = ["#ff8a3d", "#5cc8ff", "#c084fc", "#facc15"];
+let impOn = false, testing = false;
+
+// log-scale hum meter, 1 µV .. 5000 µV; green < 30, amber < 100
+const HMIN = 1, HMAX = 5000, logp = v => Math.max(0, Math.min(1, Math.log(Math.max(v, HMIN) / HMIN) / Math.log(HMAX / HMIN)));
+document.documentElement.style.setProperty("--z1", `${100 * logp(30)}%`);
+document.documentElement.style.setProperty("--z2", `${100 * logp(100)}%`);
+$("humScale").innerHTML = [1, 10, 30, 100, 1000, 5000].map(v => `<span style="left:${100 * logp(v)}%">${v >= 1000 ? v / 1000 + "k" : v}</span>`).join("");
+
+// tick state survives reloads on this iPad
+let done = new Set();
+try { done = new Set(JSON.parse(localStorage.getItem("reach.fixesDone") || "[]")); } catch (e) {}
+const saveDone = () => { try { localStorage.setItem("reach.fixesDone", JSON.stringify([...done])); } catch (e) {} };
+$("resetFixes").onclick = () => { done.clear(); saveDone(); lastFixKey = ""; };
+
+function hero(level, title, sub, icon) {
+  $("hero").className = `hero ${level}`;
+  $("hero").innerHTML = `<div class="dot">${icon}</div><div><b>${title}</b><span>${sub}</span></div>`;
+}
+
+// 2-minute history of hum per channel
+const hist = [];
+function drawHist() {
+  const cv = $("cvHist"), r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1, H = +(cv.dataset.h ||= cv.getAttribute("height"));
+  cv.style.height = H + "px";
+  if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(H * dpr); }
+  const ctx = cv.getContext("2d"), W = r.width; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const L = 40, B = 18, now = Date.now(), span = 120000;
+  const X = t => L + (W - L - 8) * (1 - (now - t) / span), Y = v => (H - B) - (H - B - 8) * logp(v);
+  ctx.font = "11px Inter, sans-serif"; ctx.fillStyle = "#5d6578";
+  [1, 10, 100, 1000].forEach(v => { ctx.fillText(v >= 1000 ? "1k" : v, 6, Y(v) + 4); ctx.strokeStyle = "rgba(255,255,255,.05)"; ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(W - 8, Y(v)); ctx.stroke(); });
+  ["-2m", "-1m", "now"].forEach((t, i) => ctx.fillText(t, L + (W - L - 30) * i / 2, H - 4));
+  ctx.strokeStyle = "rgba(52,211,153,.7)"; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.moveTo(L, Y(30)); ctx.lineTo(W - 8, Y(30)); ctx.stroke(); ctx.setLineDash([]);
+  const nCh = Math.max(3, ...hist.map(p => p.v.length));
+  for (let c = 0; c < nCh; c++) {
+    ctx.strokeStyle = COLORS[c]; ctx.lineWidth = 2; ctx.beginPath(); let st = false;
+    for (const p of hist) { if (p.v[c] == null) { st = false; continue; } const x = X(p.t), y = Y(p.v[c]); st ? ctx.lineTo(x, y) : ctx.moveTo(x, y); st = true; }
+    ctx.stroke();
+  }
+}
+
+let lastFixKey = "";
+function renderFixes(h) {
+  const key = JSON.stringify(h.fixes.map(f => f.title)) + [...done].join();
+  if (key === lastFixKey) return;   // don't rebuild under the user's finger
+  lastFixKey = key;
+  if (!h.fixes.length) { $("fixes").innerHTML = `<li class="none"><b class="good">Nothing to fix</b>Hum is low on every channel.</li>`; return; }
+  $("fixes").innerHTML = h.fixes.map(f => `<li data-k="${esc(f.title)}" class="${done.has(f.title) ? "done" : ""}"><b>${esc(f.title)}</b>${esc(f.body)}</li>`).join("");
+  $("fixes").querySelectorAll("li").forEach(li => li.onclick = () => { const k = li.dataset.k; done.has(k) ? done.delete(k) : done.add(k); saveDone(); lastFixKey = ""; renderFixes(h); });
+}
+
+function render(s) {
+  const q = s.quality ? s.quality.filter((_, i) => s.ssvep_idx.includes(i)) : [];
+  const h = s.hum;
+  if (!h || !h.chans) return;
+  hist.push({t: Date.now(), v: h.chans.map(c => c.uv)});
+  while (hist.length && Date.now() - hist[0].t > 120000) hist.shift();
+  $("humRows").innerHTML = h.chans.map((c, i) => `<div class="hrow"><span class="nm"><i style="background:${COLORS[i]}"></i>${c.name}</span>
+    <div class="meter"><div class="f ${c.level}" style="width:${Math.max(3, 100 * logp(c.uv))}%"></div></div>
+    <span class="v">${c.uv >= 1000 ? (c.uv / 1000).toFixed(1) + "k" : Math.round(c.uv)} µV<small>EEG ${q[i] ? Math.round(q[i].eeg_uv) : "–"} µV</small></span></div>`).join("");
+  const tag = {shared: "shared path", one: "one electrode", mixed: "mixed", low: "all clear"}[h.source] || h.source;
+  $("where").innerHTML = `<span class="tag ${h.source}">${tag}</span><p>${esc(h.verdict)}</p>
+    ${h.source !== "low" ? `<p class="hint">In step across channels: ${Math.round(100 * h.shared)}% shared · correlation ≥ ${h.min_corr}. ${h.source === "shared" ? "Same hum everywhere = it enters through the forehead ground or the reference, not the scalp electrodes." : ""}</p>` : ""}`;
+  renderFixes(h);
+  const contact = q.filter(x => x.level === "bad" && !/hum/i.test(x.msg));
+  if (h.level === "bad") hero("bad", "Fix the hum", h.source === "shared" ? "Same hum on every channel: start with the forehead ground" : `Worst on ${h.worst}`, "!");
+  else if (contact.length) hero("bad", `Fix ${contact.map(x => x.name).join(", ")}`, contact[0].msg, "!");
+  else if (h.level === "warn") hero("warn", "Usable, hum is high", "Tests will work less well. Try the fixes.", "~");
+  else hero("good", "Signal is good", "Hum low on O1, Oz and O2", "✓");
+  drawHist();
+}
+
+function renderImp(imp) {
+  impOn = imp.on;
+  $("impBtn").disabled = !imp.available || (testing && !imp.on);
+  $("impBtn").textContent = imp.on ? "Stop & resume EEG" : testing ? "Wait: test running" : "Measure impedance live";
+  $("impBtn").classList.toggle("imp-on", imp.on);
+  $("impNote").textContent = imp.on ? "measuring live…" : imp.settling ? "EEG settling…" : "electrode ↔ skin";
+  if (!imp.on) return;
+  const lv = k => k == null ? "" : k < 50 ? "good" : k < 150 ? "warn" : "bad";
+  const word = k => k == null ? "waiting…" : k < 50 ? "good" : k < 150 ? "okay" : "poor contact";
+  $("impRows").innerHTML = imp.chans.map(c => `<div class="irow"><span class="d ${lv(c.kohm)}"></span><span class="nm">${c.name}</span>
+    <span class="lv">${word(c.kohm)}</span><span class="k">${c.kohm == null ? "–" : c.kohm.toFixed(1) + " kΩ"}</span></div>`).join("")
+    + `<p class="hint">Good under 50 kΩ.</p>`;
+}
+
+function renderActivity(a, user) {
+  testing = a.testing;
+  $("pTest").textContent = a.testing ? "test running" : "no test running";
+  $("pTest").className = "pill " + (a.testing ? "live" : "");
+  $("who").textContent = user ? `profile · ${user}` : "";
+  $("aN").textContent = a.n;
+  $("aR").textContent = a.n ? `${Math.round(100 * a.right / a.n)}%` : "–";
+  const l = a.last;
+  $("aL").innerHTML = l ? `<span class="${l.fb_correct ? "good" : "bad"}">${l.fb_correct ? "✓" : "✗"}</span> ${fmt(l.target_freq)} → ${fmt(l.fb_pred)} Hz` : "–";
+}
+
+function connect() {
+  const es = new EventSource("stream");
+  es.onopen = () => { $("pConn").textContent = "connected to laptop"; $("pConn").className = "pill ok"; };
+  es.onmessage = e => {
+    const s = JSON.parse(e.data);
+    if (s.activity) renderActivity(s.activity, s.user);
+    runFeed(s);
+    if (s.imp) renderImp(s.imp);
+    const stale = s.stale_s == null || s.stale_s > 1.5;
+    $("pConn").textContent = stale ? "headset not streaming" : `${s.source} · live`;
+    $("pConn").className = "pill " + (stale ? "bad" : "ok");
+    if (stale) { hero("bad", "No data from the headset", "Check the Ganglion is on and within 1 m of the laptop", "!"); return; }
+    if (s.paused) {
+      hero("info", impOn ? "Measuring impedance" : "Resuming EEG…", impOn ? "EEG paused. Tap “Stop & resume EEG” when done." : "A few seconds to settle.", impOn ? "Ω" : "…");
+      hist.push({t: Date.now(), v: [null, null, null]}); drawHist();
+      return;
+    }
+    if (s.warming) { hero("info", "Warming up", "Collecting a few seconds of signal", "…"); return; }
+    render(s);
+  };
+  es.onerror = () => { $("pConn").textContent = "can’t reach the laptop"; $("pConn").className = "pill bad";
+    hero("bad", "Can’t reach the laptop", "Same Wi-Fi? Trainer started with --lan?", "!"); };
+}
+$("impBtn").onclick = async () => {
+  $("impBtn").disabled = true;
+  const r = await post("api/impedance", {on: !impOn});
+  if (r.error) $("impRows").innerHTML = `<p class="empty bad" style="margin:0">${esc(r.error)}</p>`;
+  else if (!r.on) $("impRows").innerHTML = `<p class="empty" style="margin:0">Stopped. EEG resumes in a few seconds.</p>`;
+  $("impBtn").disabled = false;
+};
+addEventListener("resize", drawHist);
+
+// ---------- run sheet: each step says exactly what to set, and ticks itself off from the server's state
+const CMD = `cd ~/Desktop/NatHacks26
+/private/tmp/claude-501/-Users-joshbarre-Desktop-NatHacks26/37264d7e-9464-45f9-9891-e82b228a5afd/scratchpad/eegvenv/bin/python tools/ssvep_train.py --native --user nav`;
+const STEPS = [
+  {id: "gui", manual: true, t: "Quit the OpenBCI GUI", sub: "It holds the Ganglion. The trainer can’t connect while it’s open."},
+  {id: "power", manual: true, t: "Unplug the laptop charger", sub: "And anything else plugged into mains: monitor, USB hubs, speakers."},
+  {id: "wear", manual: true, t: "Put the headset on Nav", sub: "O1, Oz, O2 pressed in through the hair. Forehead ground flat on bare skin with a drop of saline. REF on."},
+  {id: "stream", t: "Start the trainer", sub: "Run this in Terminal on the laptop, then open the trainer page on the main screen:",
+    html: `<pre class="cmd">${CMD}</pre><div class="set"><div><span>Nav’s screen</span>127.0.0.1:8766</div><div><span>this screen</span>127.0.0.1:8766/signal</div></div>`},
+  {id: "hum", skip: true, t: "Get the hum as low as you can", sub: "Green (under 30 µV) ticks itself. If it won’t go lower, tap Continue anyway: the decoder filters 60 Hz out, and the best model so far was recorded with more hum than this."},
+  {id: "imp", skip: true, t: "Check impedance", sub: "Tap “Measure impedance live” below. All four under 50 kΩ, then tap “Stop & resume EEG”."},
+  {id: "screen", skip: true, t: "Nav’s screen at 60 Hz", sub: "System Settings → Displays → the screen Nav uses → Refresh rate 60 Hz (not ProMotion). Then reload Nav’s page. Ticks itself when his page reports 60 Hz.",
+    html: `<div class="set" id="scrNow"></div>`},
+  {id: "t1", t: "Test 1 · one square", sub: "Nav looks at the single flashing square each time. Rest breaks every 10: press Space.", goal: 28, count: c => c.single,
+    set: [["Tab", "1 · Test 1"], ["Frequencies", "all 7"], ["Each ×", "4"], ["Look", "7 s"], ["Break", "4 s"], ["Press", "Start Test 1"]], dur: "28 trials · about 5 min"},
+  {id: "t2far", t: "Test 2 · four squares, far", sub: "Look at the square with the orange ring. Keep 7.5 · 8.57 · 10 · 12 Hz selected (matches the sim).", goal: 24, count: c => c.four_far,
+    set: [["Tab", "2 · Test 2"], ["4 frequencies", "7.5 · 8.57 · 10 · 12"], ["Spacing", "far"], ["Each ×", "6"], ["Look", "7 s"], ["Break", "4 s"], ["Press", "Start Test 2"]], dur: "24 trials · about 4.5 min"},
+  {id: "t2norm", t: "Test 2 · four squares, normal", sub: "Same again at normal spacing: more trials for the model, and shows if distance helps.", goal: 24, count: c => c.four_normal,
+    set: [["Tab", "2 · Test 2"], ["Spacing", "normal"], ["Each ×", "6"], ["Look", "7 s"], ["Break", "4 s"], ["Press", "Start Test 2"]], dur: "24 trials · about 4.5 min"},
+  {id: "train", skip: true, t: "Check the Learning tab", sub: "No training step with the RL decoder: it learns during the tests. Tab 3 shows RL agent vs FFT peak; tap Continue when you’ve looked.",
+    set: [["Tab", "3 · Learning"]], dur: "a glance"},
+  {id: "reh", t: "Rehearse the demo", sub: "The model picks; “not sure” means the arm would wait.", goal: 10, count: c => c.rehearse,
+    set: [["Tab", "4 · Rehearse"], ["Tell me where to look", "on"], ["Press", "Start rehearsal"], ["Stop after", "10 picks (Esc)"]], dur: "about 1 min"},
+  {id: "save", manual: true, t: "Save and close", sub: "In Terminal press Ctrl+C. It saves everything and exports for the sim’s “Pick with Nav’s EEG”."},
+].map(s => ({...s, html: s.html || ""}));
+let run = {session: null, done: {}}, humSince = 0, live = {connected: false, counts: null, trained: false};
+const runKey = () => `reach.run.${run.session || "pending"}`;
+function loadRun(session) {
+  if (session === run.session) return;
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(`reach.run.${session}`)) || JSON.parse(localStorage.getItem("reach.run.pending")); } catch (e) {}
+  run = {session, done: (saved && saved.done) || {}};
+  saveRun(); renderSteps();
+}
+const saveRun = () => { try { localStorage.setItem(runKey(), JSON.stringify(run)); } catch (e) {} };
+function mark(id) { if (!run.done[id]) { run.done[id] = Date.now(); saveRun(); renderSteps(); } }
+function stepDone(s) {
+  if (run.done[s.id]) return true;
+  if (s.goal && live.counts && s.count(live.counts) >= s.goal) return true;
+  if (s.id === "train" && live.trained) return true;
+  return false;
+}
+let lastStepsKey = "";
+function renderSteps() {
+  let nowIdx = STEPS.findIndex(s => !stepDone(s));
+  const key = JSON.stringify([nowIdx, run.done, live.counts, live.trained]);
+  if (key === lastStepsKey) return;
+  lastStepsKey = key;
+  if (nowIdx < 0) {
+    $("steps").innerHTML = `<div class="alldone">✓ All done. Nav’s recordings and model are saved.</div>`;
+    $("runNote").textContent = "finished"; return;
+  }
+  $("runNote").textContent = `step ${nowIdx + 1} of ${STEPS.length}`;
+  $("steps").innerHTML = STEPS.map((s, i) => {
+    const st = i < nowIdx || stepDone(s) ? "done" : i === nowIdx ? "now" : "later";
+    const n = s.goal && live.counts ? Math.min(s.count(live.counts), s.goal) : 0;
+    return `<li class="st ${st} ${s.manual || s.skip ? "manual" : ""}" data-i="${i}"><span class="ic">${st === "done" ? "✓" : i + 1}</span><div>
+      ${st === "now" ? `<span class="now-lbl">Now</span>` : ""}
+      <b>${s.t}${s.goal ? ` <span style="color:var(--muted);font-weight:600;font-size:14px">${n}/${s.goal}</span>` : ""}</b>
+      <span class="sub">${s.sub}${s.dur && st === "now" ? ` · ${s.dur}` : ""}</span>
+      ${s.html}
+      ${s.set ? `<div class="set">${s.set.map(([k, v]) => `<div><span>${k}</span>${v}</div>`).join("")}</div>` : ""}
+      ${s.goal ? `<div class="prog"><i style="width:${100 * n / s.goal}%"></i></div>` : ""}
+      ${s.manual ? `<span class="tap">Done ✓</span>` : s.skip ? `<span class="tap">Continue anyway →</span>` : ""}
+    </div></li>`; }).join("");
+  $("steps").querySelectorAll(".st.manual").forEach(li => li.onclick = () => {
+    const s = STEPS[+li.dataset.i];
+    if (run.done[s.id]) delete run.done[s.id]; else run.done[s.id] = Date.now();
+    saveRun(); lastStepsKey = ""; renderSteps();
+  });
+}
+$("runReset").onclick = () => { run.done = {}; saveRun(); lastStepsKey = ""; renderSteps(); };
+// feed from the live stream
+function runFeed(s) {
+  if (s.activity && s.activity.session) loadRun(s.activity.session);
+  const stale = s.stale_s == null || s.stale_s > 1.5;
+  if (!stale && !/fake/i.test(s.source || "")) mark("stream");
+  if (s.activity) { live.counts = s.activity.counts; live.trained = s.activity.trained;
+    const r = s.activity.refresh_hz;
+    if (r && Math.abs(r - 60) < 1.5) mark("screen"); else if (r && run.done.screen) { delete run.done.screen; saveRun(); }
+    const el = document.getElementById("scrNow"); if (el) el.innerHTML = `<div><span>Nav’s page reports</span>${r ? r + " Hz" : "– (open or reload it)"}</div>`; }
+  if (s.hum && s.hum.level === "good" && !s.paused && !stale) { humSince ||= Date.now(); if (Date.now() - humSince > 5000) mark("hum"); }
+  else humSince = 0;
+  if (s.imp && s.imp.on && s.imp.chans.length && s.imp.chans.every(c => c.kohm != null && c.kohm < 50)) mark("imp");
+  renderSteps();
+}
+renderSteps();
+connect();
+</script>
+</body>
+</html>
