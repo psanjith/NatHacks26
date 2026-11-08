@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSVEP Test Bench</title>
+<style>
+  :root {
+    --bg: #0b0f17; --panel: #141a26; --line: #263044; --text: #e8ecf3; --muted: #8d97ab;
+    --good: #3ecf8e; --warn: #f5b942; --bad: #ff5d5d; --cue: #ff8a1f; --guess: #4cc9f0;
+    --a: #ff8a1f; --b: #3ecfc0; --c: #b48cff; --d: #f5d142;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; }
+  .pill { padding: 3px 10px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  .pill.ok { color: var(--good); border-color: #1f5a41; }
+  .pill.bad { color: var(--bad); border-color: #6b2a2a; }
+  .pill.warn { color: var(--warn); border-color: #6b5420; }
+  main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(380px, 1fr); gap: 16px; padding: 16px; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  /* stimulus */
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  button, select { font: inherit; color: var(--text); background: #1d2535; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  button:hover { border-color: #3a4763; }
+  button.primary { background: var(--cue); border-color: var(--cue); color: #1a0f00; font-weight: 650; }
+  button.active { outline: 2px solid var(--guess); }
+  button:disabled { opacity: .45; cursor: default; }
+  label.inline { color: var(--muted); display: flex; gap: 6px; align-items: center; }
+  #stage { background: #000; border-radius: 10px; padding: 28px; position: relative; }
+  #instr { text-align: center; font-size: 22px; font-weight: 600; min-height: 34px; margin-bottom: 18px; color: #fff; }
+  #grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9%; width: min(100%, 64vh); margin: 0 auto; }
+  .tile-wrap { position: relative; }
+  .tile { aspect-ratio: 1; background: #3a3a3a; border-radius: 6px; }
+  .tile-wrap .ring { position: absolute; inset: -12px; border-radius: 12px; border: 6px solid transparent; pointer-events: none; }
+  .tile-wrap.cue .ring { border-color: var(--cue); }
+  .tile-wrap.guess .ring { border-color: var(--guess); border-style: dashed; }
+  .tile-wrap.cue.guess .ring { border-color: var(--cue); border-style: solid; box-shadow: 0 0 0 4px var(--guess); }
+  .badge { display: flex; justify-content: center; gap: 8px; margin-top: 18px; font-weight: 600; font-size: 15px; }
+  .badge .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-top: 4px; }
+  .mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 72px; font-weight: 800; pointer-events: none; text-shadow: 0 0 12px #000; }
+  #warnOverlay { position: absolute; inset: 0; background: rgba(0,0,0,.92); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; z-index: 3; }
+  #warnOverlay p { max-width: 460px; color: #cfd6e4; margin: 0; }
+
+  /* verdict */
+  .verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .vbox { border-radius: 10px; padding: 12px; background: #0f141e; border: 1px solid var(--line); }
+  .vbox .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  .vbox .v { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .vbox .s { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+
+  .chans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  @media (max-width: 560px) { .chans { grid-template-columns: repeat(2, 1fr); } }
+  .chan { border-radius: 10px; padding: 10px; background: #0f141e; border: 1px solid var(--line); border-left-width: 4px; min-width: 0; }
+  .chan .n { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; }
+  .chan .n small { color: var(--muted); font-weight: 500; font-size: 11px; }
+  .chan .nums { color: var(--muted); font-size: 12px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .chan .msg { font-size: 12px; margin-top: 6px; }
+  canvas { width: 100%; display: block; background: #0f141e; border-radius: 8px; }
+
+  .bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: end; height: 120px; }
+  .bar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+  .bar .fill { width: 70%; border-radius: 6px 6px 0 0; min-height: 2px; transition: height .15s; }
+  .bar .lab { font-size: 12px; color: var(--muted); }
+  .bar.top .lab { color: var(--text); font-weight: 700; }
+
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 6px; text-align: center; border-bottom: 1px solid var(--line); font-size: 12px; }
+  th { color: var(--muted); font-weight: 600; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .stats div { background: #0f141e; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .stats b { display: block; font-size: 20px; }
+  .stats span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  #trialList { max-height: 220px; overflow: auto; margin-top: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Reach · SSVEP test bench</h1>
+  <span class="pill" id="pSource">connecting…</span>
+  <span class="pill" id="pStream">no data</span>
+  <span class="pill" id="pRefresh">screen: measuring…</span>
+  <span class="pill" id="pDrops">dropped frames: 0</span>
+</header>
+
+<main>
+  <div class="col">
+    <section class="panel">
+      <div class="controls">
+        <button id="btnFree">Free look</button>
+        <button id="btnCued" class="primary">Start cued test</button>
+        <label class="inline">Trials <select id="selN"><option>8</option><option selected>20</option><option>40</option></select></label>
+        <label class="inline">Look time <select id="selT"><option value="2">2 s</option><option value="3">3 s</option><option value="4" selected>4 s</option><option value="5">5 s</option></select></label>
+        <button id="btnStop" disabled>Stop (Esc)</button>
+      </div>
+      <div id="stage">
+        <div id="instr">Press “Free look” or “Start cued test”</div>
+        <div id="grid"></div>
+        <div id="warnOverlay">
+          <div style="font-size:20px;font-weight:700">⚠ Flashing lights</div>
+          <p>This test shows flickering squares (7.5–12 flashes per second). Don’t take part if you or the
+             wearer have epilepsy or are sensitive to flashing light. Stop any time with Esc.</p>
+          <button class="primary" id="btnAgree">I understand, continue</button>
+        </div>
+      </div>
+      <p class="hint" id="freeHint">Free look: stare at any square; the dashed blue ring is the computer’s guess.
+        Press <b>1–4</b> (or click a square) to log a 4-second spot check of the square you’re looking at.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Results: does the computer agree with you?</h2>
+      <div class="stats">
+        <div><b id="sAcc">–</b><span>agreement</span></div>
+        <div><b id="sN">0</b><span>trials</span></div>
+        <div><b id="sItr">–</b><span>bits / min</span></div>
+        <div><b id="sSnr">–</b><span>SNR at target</span></div>
+      </div>
+      <div id="accMsg" class="hint" style="margin:0 0 10px">Run a cued test to measure accuracy. Chance is 25%.</div>
+      <table id="confusion"></table>
+      <div id="trialList"><table id="trials"><thead><tr><th>#</th><th>looked at</th><th>computer said</th><th>margin</th><th>SNR</th><th>notes</th></tr></thead><tbody></tbody></table></div>
+      <p class="hint">Every trial and the raw EEG are saved in <code>logs/</code>.</p>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel">
+      <h2>Verdict</h2>
+      <div class="verdict">
+        <div class="vbox"><div class="k">Signal quality</div><div class="v" id="vSig">–</div><div class="s" id="vSigS">waiting for data</div></div>
+        <div class="vbox"><div class="k">Computer agrees?</div><div class="v" id="vAgree">–</div><div class="s" id="vAgreeS">run a cued test</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Electrodes</h2>
+      <div class="chans" id="chans"></div>
+      <p class="hint">Contact test: close your eyes for 10 s. The “alpha” number on O1/Oz/O2 should roughly double. Clench your jaw: T7’s “emg” should jump.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Live signal (last 4 s, filtered 1–45 Hz)</h2>
+      <canvas id="cvTrace" height="220"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>Spectrum of O1/Oz/O2 (look for a peak at the square you watch)</h2>
+      <canvas id="cvSpec" height="170"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>Live decoder (last 3 s)</h2>
+      <div class="bars" id="bars"></div>
+      <p class="hint" id="liveMsg">–</p>
+    </section>
+  </div>
+</main>
+
+<script>
+const BASE_FREQS = [7.5, 8.571, 10, 12];
+const LETTERS = ["A", "B", "C", "D"];
+const COLORS = ["--a", "--b", "--c", "--d"].map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim());
+const CUE_S = 1.5, FEEDBACK_S = 1.2, MARGIN_OK = 0.15;
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const post = (url, body) => fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})}).then(r => r.json());
+
+let refresh = 60, frameMs = 1000 / 60, periods = [8, 7, 6, 5], freqs = BASE_FREQS.slice();
+let agreed = false, flicker = false, t0 = 0, lastTs = 0, drops = 0, framesSeen = 0;
+let mode = null, runToken = 0, snap = null, results = [], spotBusy = false, currentTarget = null;
+
+// ---------- tiles
+const tiles = [];
+for (let i = 0; i < 4; i++) {
+  const wrap = document.createElement("div");
+  wrap.className = "tile-wrap";
+  wrap.innerHTML = `<div class="tile"></div><div class="ring"></div><div class="mark"></div>
+    <div class="badge"><span class="dot" style="background:${COLORS[i]}"></span><span>${LETTERS[i]} · <span class="fr"></span> Hz</span></div>`;
+  wrap.addEventListener("mouseenter", () => hover(i));
+  wrap.addEventListener("mouseleave", () => hover(null));
+  wrap.addEventListener("click", () => spotCheck(i));
+  $("grid").appendChild(wrap);
+  tiles.push({wrap, el: wrap.querySelector(".tile"), mark: wrap.querySelector(".mark"), on: null});
+}
+function setFlicker(on) {
+  flicker = on; drops = 0; framesSeen = 0; t0 = 0;
+  if (!on) tiles.forEach(t => { t.el.style.background = "#3a3a3a"; t.on = null; });
+}
+function setCue(i) { tiles.forEach((t, k) => t.wrap.classList.toggle("cue", k === i)); }
+function setGuess(i) { tiles.forEach((t, k) => t.wrap.classList.toggle("guess", k === i)); }
+function setMark(i, txt, color) { tiles.forEach((t, k) => { t.mark.textContent = k === i ? txt : ""; t.mark.style.color = color || "#fff"; }); }
+
+// fake mode: hovering a tile = "looking" at it (ignored by a real headset)
+let hovered = null;
+function hover(i) { hovered = i; if (mode === "free" && flicker) post("/api/gaze", {idx: i}); }
+
+// ---------- frame loop (flicker is locked to the screen's refresh: on = (frame % P) < P/2)
+function loop(ts) {
+  if (flicker) {
+    if (!t0) { t0 = ts; lastTs = ts; }
+    const dt = ts - lastTs; lastTs = ts; framesSeen++;
+    if (dt > frameMs * 1.5) { drops += Math.round(dt / frameMs) - 1; }
+    const k = Math.round((ts - t0) / frameMs);
+    for (let i = 0; i < 4; i++) {
+      const on = (k % periods[i]) < periods[i] / 2;
+      if (on !== tiles[i].on) { tiles[i].on = on; tiles[i].el.style.background = on ? "#fff" : "#000"; }
+    }
+    if (framesSeen % 30 === 0) {
+      const pct = 100 * drops / Math.max(framesSeen, 1);
+      $("pDrops").textContent = `dropped frames: ${drops}`;
+      $("pDrops").className = "pill " + (pct > 2 ? "bad" : drops ? "warn" : "ok");
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+async function measureRefresh() {
+  const ts = [];
+  await new Promise(res => { const f = t => { ts.push(t); ts.length < 121 ? requestAnimationFrame(f) : res(); }; requestAnimationFrame(f); });
+  const d = ts.slice(1).map((t, i) => t - ts[i]).sort((a, b) => a - b);
+  const med = d[Math.floor(d.length / 2)];
+  refresh = Math.round(1000 / med);
+  frameMs = 1000 / refresh;
+  periods = BASE_FREQS.map(f => Math.max(2, Math.round(refresh / f)));
+  freqs = periods.map(p => refresh / p);
+  const uniq = new Set(periods).size === 4;
+  $("pRefresh").textContent = `screen: ${refresh} Hz` + (uniq ? "" : " (too slow for 4 targets!)");
+  $("pRefresh").className = "pill " + (uniq && refresh >= 59 ? "ok" : "bad");
+  tiles.forEach((t, i) => t.wrap.querySelector(".fr").textContent = freqs[i].toFixed(2).replace(/\.00$/, ""));
+  await post("/api/freqs", {freqs, refresh_hz: refresh});
+}
+
+// ---------- modes
+function stopAll() {
+  runToken++;
+  mode = null; setFlicker(false); setCue(null); setGuess(null); setMark(null, "");
+  post("/api/gaze", {idx: null});
+  $("btnStop").disabled = true; $("btnCued").disabled = false; $("btnFree").classList.remove("active");
+  $("instr").textContent = "Stopped. Press “Free look” or “Start cued test”.";
+}
+function needAgree() { if (!agreed) { $("instr").textContent = "Please read the warning first."; return true; } return false; }
+
+function startFree() {
+  if (needAgree()) return;
+  stopAll(); mode = "free";
+  $("btnFree").classList.add("active"); $("btnStop").disabled = false;
+  $("instr").textContent = "Look at any square. Blue dashed ring = computer’s guess.";
+  setFlicker(true);
+  if (hovered !== null) post("/api/gaze", {idx: hovered});
+}
+
+async function spotCheck(i) {
+  if (mode !== "free" || spotBusy) return;
+  spotBusy = true;
+  const tok = runToken, T = +$("selT").value;
+  setCue(i); currentTarget = i;
+  post("/api/gaze", {idx: i});
+  await post("/api/trial/start", {target: i, mode: "spot"});
+  for (let s = T; s > 0; s--) { if (tok !== runToken) break; $("instr").textContent = `Spot check: keep looking at ${LETTERS[i]}… ${s}`; await sleep(1000); }
+  const r = await post("/api/trial/end");
+  spotBusy = false; currentTarget = null;
+  if (tok !== runToken) return;
+  setCue(null);
+  if (r.error) { $("instr").textContent = r.error; return; }
+  addResult(r, T, "spot");
+  $("instr").textContent = r.correct ? `✓ Agreed: ${LETTERS[r.pred]}` : `✗ You looked at ${LETTERS[i]}, computer said ${LETTERS[r.pred]}`;
+  post("/api/gaze", {idx: hovered});
+}
+
+async function startCued() {
+  if (needAgree()) return;
+  stopAll();
+  const tok = runToken, N = +$("selN").value, T = +$("selT").value;
+  mode = "cued"; $("btnStop").disabled = false; $("btnCued").disabled = true;
+  const order = [];
+  for (let k = 0; k < N; k++) order.push(k % 4);
+  for (let k = order.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [order[k], order[j]] = [order[j], order[k]]; }
+  post("/api/note", {ev: "cued_test_start", n: N, look_s: T, refresh_hz: refresh});
+  for (let s = 3; s > 0; s--) { if (tok !== runToken) return; $("instr").textContent = `Cued test: ${N} trials. Starting in ${s}…`; await sleep(1000); }
+  for (let k = 0; k < N; k++) {
+    if (tok !== runToken) return;
+    const tgt = order[k];
+    // 1) cue, no flicker: move your eyes now
+    setMark(null, ""); setGuess(null); setCue(tgt);
+    $("instr").textContent = `Trial ${k + 1}/${N}: look at ${LETTERS[tgt]}`;
+    await sleep(CUE_S * 1000);
+    if (tok !== runToken) return;
+    // 2) flicker; keep looking
+    currentTarget = tgt;
+    post("/api/gaze", {idx: tgt});
+    await post("/api/trial/start", {target: tgt, mode: "cued"});
+    setFlicker(true);
+    $("instr").textContent = `Trial ${k + 1}/${N}: keep looking at ${LETTERS[tgt]}`;
+    await sleep(T * 1000);
+    const dropsThisTrial = drops;
+    setFlicker(false);
+    post("/api/gaze", {idx: null});
+    currentTarget = null;
+    if (tok !== runToken) return;
+    const r = await post("/api/trial/end");
+    if (r.error) { $("instr").textContent = r.error; stopAll(); return; }
+    r.drops = dropsThisTrial;
+    addResult(r, T, "cued");
+    // 3) feedback
+    setMark(r.pred, r.correct ? "✓" : "✗", r.correct ? "var(--good)" : "var(--bad)");
+    await sleep(FEEDBACK_S * 1000);
+  }
+  if (tok !== runToken) return;
+  setCue(null); setMark(null, "");
+  mode = null; $("btnStop").disabled = true; $("btnCued").disabled = false;
+  const c = results.filter(r => r.kind === "cued").slice(-N);
+  const acc = c.filter(r => r.correct).length;
+  $("instr").textContent = `Done: computer agreed ${acc}/${c.length} times (${Math.round(100 * acc / c.length)}%).`;
+  post("/api/note", {ev: "cued_test_done", n: c.length, correct: acc});
+}
+
+// ---------- results
+function itr(P, N, T) {
+  if (P <= 1 / N) return 0;
+  const bits = Math.log2(N) + (P >= 1 ? 0 : P * Math.log2(P) + (1 - P) * Math.log2((1 - P) / (N - 1)));
+  return bits * 60 / T;
+}
+function addResult(r, T, kind) {
+  results.push({...r, T, kind});
+  const tb = $("trials").querySelector("tbody");
+  const notes = [r.artifact ? "artifact (movement/clench)" : "", r.packet_rate < 0.85 ? `lost ${Math.round(100 * (1 - r.packet_rate))}% packets` : "",
+                 r.drops ? `${r.drops} dropped frames` : "", kind === "spot" ? "spot" : ""].filter(Boolean).join(", ");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${results.length}</td><td style="color:${COLORS[r.target]}">${LETTERS[r.target]}</td>
+    <td class="${r.correct ? "good" : "bad"}">${LETTERS[r.pred]} ${r.correct ? "✓" : "✗"}</td>
+    <td>${(100 * r.margin).toFixed(0)}%</td><td>${r.snr[r.target].toFixed(1)}×</td><td style="color:var(--muted)">${notes}</td>`;
+  tb.prepend(tr);
+  renderStats();
+}
+function renderStats() {
+  const R = results;
+  const n = R.length, ok = R.filter(r => r.correct).length, P = n ? ok / n : 0;
+  $("sN").textContent = n;
+  if (!n) return;
+  $("sAcc").textContent = `${Math.round(100 * P)}%`;
+  $("sAcc").className = P >= .85 ? "good" : P >= .6 ? "warn" : "bad";
+  const T = R.reduce((s, r) => s + r.T, 0) / n + CUE_S;
+  $("sItr").textContent = itr(P, 4, T).toFixed(1);
+  const snrs = R.map(r => r.snr[r.target]).sort((a, b) => a - b);
+  $("sSnr").textContent = snrs[Math.floor(n / 2)].toFixed(1) + "×";
+  let msg, cls;
+  if (n < 20) { msg = `${Math.round(100 * P)}% so far, but only ${n} trial${n > 1 ? "s" : ""}: run at least 20 for a number you can quote.`; cls = P >= .6 ? "warn" : "bad"; }
+  else if (P >= .85) { msg = "Reliable enough for Reach. Quote it as: " + `${Math.round(100 * P)}% over ${n} trials, ${R[0].T}-s looks, 4 targets.`; cls = "good"; }
+  else if (P >= .6) { msg = "Working but not reliable yet. Try 5-s looks, a darker room, and fix any yellow/red electrodes."; cls = "warn"; }
+  else { msg = "Not working yet (chance is 25%). Fix electrode contact first: aim for green on O1, Oz, O2."; cls = "bad"; }
+  $("accMsg").textContent = msg; $("accMsg").className = "hint " + cls;
+  $("vAgree").textContent = `${ok}/${n}  (${Math.round(100 * P)}%)`; $("vAgree").className = "v " + cls;
+  $("vAgreeS").textContent = `chance is 25% · ${itr(P, 4, T).toFixed(1)} bits/min`;
+  // confusion matrix
+  const M = [0, 1, 2, 3].map(() => [0, 0, 0, 0]);
+  R.forEach(r => M[r.target][r.pred]++);
+  let h = `<tr><th>looked at ↓ / said →</th>${LETTERS.map((L, i) => `<th>${L} ${freqs[i].toFixed(1)}</th>`).join("")}</tr>`;
+  M.forEach((row, i) => {
+    const tot = row.reduce((a, b) => a + b, 0) || 1;
+    h += `<tr><th style="color:${COLORS[i]}">${LETTERS[i]}</th>${row.map((v, j) => `<td style="background:${v ? (i === j ? "rgba(62,207,142," : "rgba(255,93,93,") + (0.15 + 0.6 * v / tot) + ")" : "transparent"}">${v || ""}</td>`).join("")}</tr>`;
+  });
+  $("confusion").innerHTML = h;
+}
+
+// ---------- live data
+function fitCanvas(cv) {
+  const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  const h = +cv.getAttribute("height");
+  if (cv.width !== Math.round(r.width * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(h * dpr); }
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [ctx, r.width, h];
+}
+const LV = {good: "var(--good)", warn: "var(--warn)", bad: "var(--bad)"};
+const LVHEX = {good: "#3ecf8e", warn: "#f5b942", bad: "#ff5d5d"};
+
+function drawTraces(s) {
+  const [ctx, W, H] = fitCanvas($("cvTrace"));
+  ctx.clearRect(0, 0, W, H);
+  const rows = s.traces.length, rh = H / rows;
+  s.traces.forEach((y, i) => {
+    const q = s.quality[i], mid = rh * (i + .5);
+    const half = Math.max(25, 3.5 * q.eeg_uv);
+    ctx.strokeStyle = "#263044"; ctx.beginPath(); ctx.moveTo(40, mid); ctx.lineTo(W, mid); ctx.stroke();
+    ctx.fillStyle = LVHEX[q.level]; ctx.font = "600 12px sans-serif"; ctx.fillText(q.name, 6, mid - 2);
+    ctx.fillStyle = "#8d97ab"; ctx.font = "10px sans-serif"; ctx.fillText(`±${Math.round(half)}µV`, 4, mid + 12);
+    ctx.strokeStyle = LVHEX[q.level]; ctx.lineWidth = 1; ctx.beginPath();
+    y.forEach((v, k) => {
+      const x = 40 + (W - 44) * k / (y.length - 1);
+      const yy = mid - Math.max(-1, Math.min(1, v / half)) * rh * .45;
+      k ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy);
+    });
+    ctx.stroke();
+  });
+}
+function drawSpec(s) {
+  const [ctx, W, H] = fitCanvas($("cvSpec"));
+  ctx.clearRect(0, 0, W, H);
+  const f = s.spec_f, a = s.spec_a, lo = 4, hi = 40, L = 34, B = 20;
+  const X = v => L + (W - L - 8) * (v - lo) / (hi - lo);
+  let ymax = 0.5; f.forEach((v, i) => { if (v >= 5 && v <= hi) ymax = Math.max(ymax, a[i]); }); ymax *= 1.15;
+  const Y = v => (H - B) - (H - B - 8) * v / ymax;
+  ctx.font = "10px sans-serif"; ctx.fillStyle = "#8d97ab";
+  for (let g = 5; g <= hi; g += 5) { ctx.fillText(g, X(g) - 5, H - 6); }
+  ctx.fillText(ymax.toFixed(1) + "µV", 2, 12);
+  freqs.forEach((fr, i) => [1, 2].forEach(h => {
+    const x = X(fr * h); if (fr * h > hi) return;
+    ctx.strokeStyle = COLORS[i]; ctx.globalAlpha = h === 1 ? .9 : .35; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(x, 6); ctx.lineTo(x, H - B); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    if (h === 1) { ctx.fillStyle = COLORS[i]; ctx.fillText(LETTERS[i], x + 2, 16 + 11 * i); }
+  }));
+  ctx.strokeStyle = "#e8ecf3"; ctx.lineWidth = 1.5; ctx.beginPath();
+  let started = false;
+  f.forEach((v, i) => { if (v < lo || v > hi) return; started ? ctx.lineTo(X(v), Y(a[i])) : ctx.moveTo(X(v), Y(a[i])); started = true; });
+  ctx.stroke();
+}
+function drawBars(s) {
+  const el = $("bars");
+  if (!el.children.length) {
+    el.innerHTML = [0, 1, 2, 3].map(i => `<div class="bar"><div class="fill" style="background:${COLORS[i]}"></div><div class="lab">${LETTERS[i]} ${freqs[i].toFixed(1)} Hz</div></div>`).join("");
+  }
+  if (!s.live) return;
+  const mx = Math.max(...s.live.scores, 1e-6);
+  [...el.children].forEach((b, i) => {
+    b.querySelector(".fill").style.height = (90 * s.live.scores[i] / mx) + "%";
+    b.querySelector(".lab").textContent = `${LETTERS[i]} ${freqs[i].toFixed(1)} Hz`;
+    b.classList.toggle("top", i === s.live.pred);
+  });
+  const sure = s.live.margin >= MARGIN_OK;
+  if (mode === "free" && flicker) setGuess(sure ? s.live.pred : null);
+  $("liveMsg").innerHTML = flicker
+    ? (sure ? `Computer thinks you’re looking at <b style="color:${COLORS[s.live.pred]}">${LETTERS[s.live.pred]}</b> (margin ${(100 * s.live.margin).toFixed(0)}%)`
+            : `Unsure (margin ${(100 * s.live.margin).toFixed(0)}% < ${100 * MARGIN_OK}%)`)
+    : "Squares aren’t flickering, so this is just noise.";
+}
+function renderChans(s) {
+  $("chans").innerHTML = s.quality.map(q => `<div class="chan" style="border-left-color:${LV[q.level]}">
+    <div class="n"><span>${q.name}</span><small>${q.role}</small></div>
+    <div class="nums">eeg ${q.eeg_uv} µV · hum ${q.hum_uv}<br>alpha ${q.alpha_x}× · emg ${q.emg_uv}</div>
+    <div class="msg ${q.level}">${q.msg}</div></div>`).join("");
+  const ss = s.quality.filter((q, i) => s.ssvep_idx.includes(i));
+  const good = ss.filter(q => q.level === "good").length, bad = ss.filter(q => q.level === "bad");
+  let v, sub, cls;
+  if (bad.length === ss.length) { v = "No usable signal"; cls = "bad"; sub = "Fix " + bad.map(q => q.name).join(", "); }
+  else if (bad.length) { v = "Fix " + bad.map(q => q.name).join(", "); cls = "bad"; sub = bad[0].msg; }
+  else if (good === ss.length) { v = "Good"; cls = "good"; sub = `${ss.map(q => q.name).join(", ")} all have good contact`; }
+  else { v = "Usable"; cls = "warn"; sub = "Some electrodes are noisy (yellow)"; }
+  $("vSig").textContent = v; $("vSig").className = "v " + cls; $("vSigS").textContent = sub;
+}
+
+function connect() {
+  const es = new EventSource("/stream");
+  es.onmessage = e => {
+    const s = JSON.parse(e.data); snap = s;
+    $("pSource").textContent = s.source; $("pSource").className = "pill ok";
+    const stale = s.stale_s == null || s.stale_s > 1.5;
+    $("pStream").textContent = stale ? "no data arriving!" : `${s.fs} Hz · ${Math.round(s.samples / s.fs)} s streamed`;
+    $("pStream").className = "pill " + (stale ? "bad" : "ok");
+    if (s.warming) { $("vSigS").textContent = "collecting the first seconds of data…"; return; }
+    renderChans(s); drawTraces(s); drawSpec(s); drawBars(s);
+    if (stale) { $("vSig").textContent = "No data"; $("vSig").className = "v bad"; $("vSigS").textContent = "Headset not streaming: check it’s on and in range"; }
+  };
+  es.onerror = () => { $("pSource").textContent = "server not running"; $("pSource").className = "pill bad"; };
+}
+
+// ---------- wire up
+$("btnAgree").onclick = () => { agreed = true; $("warnOverlay").remove(); };
+$("btnFree").onclick = startFree;
+$("btnCued").onclick = startCued;
+$("btnStop").onclick = stopAll;
+addEventListener("keydown", e => {
+  if (e.key === "Escape") stopAll();
+  if (["1", "2", "3", "4"].includes(e.key)) spotCheck(+e.key - 1);
+});
+requestAnimationFrame(loop);
+measureRefresh();
+connect();
+</script>
+</body>
+</html>
