@@ -5,7 +5,7 @@ import { BASKET, CUBE_SIZE, TABLE_Z } from "./layout.js";
 
 // Pick and place, using only what the table camera sees:
 // park -> calibrate from the board stickers -> detect cubes -> locate each on the
-// table -> plan the moves (inverse kinematics) -> pick a random reachable cube ->
+// table -> plan the moves (inverse kinematics) -> the person picks a reachable cube ->
 // hover, descend, close, lift, move over the basket, release -> park.
 
 // Heights in metres. The arm's reach shrinks with height near its base, so each
@@ -110,9 +110,9 @@ export function createPickAndPlace({
     return { cube: null, percent: 100 };
   }
 
-  // choose (optional): picks the cube instead of chance, e.g. from recorded EEG.
-  // It gets { onTable, reachable } and returns { target (or null to wait), line }.
-  async function pickRandom(choose = null) {
+  // choose picks the cube (eyes + clench): it gets { onTable, reachable } and resolves to
+  // { target (or null: don't pick), line }.
+  async function pickCube(choose) {
     setStatus("Parking the arm");
     await park();
     setStatus("Waiting for the cubes to settle");
@@ -148,20 +148,13 @@ export function createPickAndPlace({
       return { ok: false, reason, seen: targets.length };
     }
 
-    let choice;
-    let prefix = "";
-    let decision = null;
-    if (choose) {
-      decision = choose({ onTable, reachable });
-      if (!decision.target) {
-        setStatus(decision.line);
-        return { ok: false, reason: "decoder did not pick", decision, seen: targets.length };
-      }
-      choice = decision.target;
-      prefix = `${decision.line} `;
-    } else {
-      choice = reachable[Math.floor(Math.random() * reachable.length)];
+    const decision = await choose({ onTable, reachable }); // waits for the person
+    if (!decision.target) {
+      setStatus(decision.line);
+      return { ok: false, reason: "nothing picked", decision, seen: targets.length };
     }
+    const choice = decision.target;
+    const prefix = `${decision.line} `;
     const truth = trueCubeNear(choice.table.x, choice.table.y);
     publishTargets(onTable, choice.id);
     setStatus(`${prefix}Picking cube ${choice.id} of ${onTable.length}`);
@@ -198,5 +191,5 @@ export function createPickAndPlace({
     return result;
   }
 
-  return { pickRandom, calibrateCamera, get calibration() { return calibration; } };
+  return { pickCube, calibrateCamera, get calibration() { return calibration; } };
 }

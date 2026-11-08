@@ -11,14 +11,27 @@
 </head>
 <body class="camera-page">
   <div id="viewport"></div>
-  <div class="camera-toolbar">
-    <button id="detect" type="button" disabled>Detect objects</button>
-    <button id="flicker" type="button" aria-pressed="false" disabled>Start flicker</button>
-    <button id="clear" type="button" disabled>Clear</button>
-    <span class="warning">Flicker shows flashing lights</span>
-    <span id="detect-status" role="status"></span>
-  </div>
-  <p id="status" class="camera-status">Showing the home pose. Open the sim tab to move the arm.</p>
+  <p id="status" class="camera-status">Open the sim tab to move the arm.</p>
+  <p id="prompt" class="gaze-prompt" role="status" hidden></p>
+
+  <section class="dock" aria-label="Headset and eye tracker">
+    <canvas id="waves" class="waves" aria-label="Live EEG, four channels"></canvas>
+    <div class="dock-side">
+      <div id="webcam" class="webcam" hidden></div>
+      <label class="person">Person <input id="person" type="text" spellcheck="false" autocomplete="off"></label>
+      <p id="eyes-status" class="eyes-line">Eyes: starting…</p>
+      <div class="jaw-meter" aria-hidden="true"><div id="jaw-fill"></div><div id="jaw-mark" hidden></div></div>
+      <p id="jaw-status" class="eyes-line">Jaw: looking for the headset…</p>
+      <div class="buttons">
+        <button id="recalibrate" type="button">New eye profile</button>
+        <button id="clench-check" type="button">Clench check</button>
+      </div>
+      <p class="hint">Space = clench · Esc = stop · R = re-centre · D = gaze cursor · G = glances/webcam · K = eye check · +/− clench sensitivity</p>
+    </div>
+  </section>
+  <div id="gaze-dot" class="gaze-dot" data-on="1" hidden></div>
+  <canvas id="gaze-layer" class="gaze-layer" hidden></canvas>
+
   <div id="loading" role="status"><span id="loading-text">Loading arm</span></div>
   <script type="module" src="camera-view.js"></script>
 </body>

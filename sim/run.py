@@ -2,14 +2,24 @@
 """Serve the sim locally and open it in a new Chrome tab: python3 sim/run.py"""
 import functools
 import http.server
+import json
 import subprocess
 import sys
 import webbrowser
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-USERS = HERE.parent / "logs" / "users"  # recorded EEG (git-ignored), written by tools/ssvep_train.py
+USERS = HERE.parent / "logs" / "users"   # per-person data (git-ignored), shared with tools/ssvep_train.py
 FIRST_PORT = 8000
+MAX_PROFILE = 2_000_000                  # bytes
+
+
+def profile_path(url):
+    """/profiles/<name>.json -> logs/users/<name>/gaze_profile.json (the eye tracker's saved face model)."""
+    if not (url.startswith("/profiles/") and url.endswith(".json")):
+        return None
+    name = "".join(c for c in url[10:-5].lower() if c.isalnum() or c in "-_")
+    return USERS / name / "gaze_profile.json" if name else None
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -20,22 +30,35 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
+    def _reply(self, code, body, kind="application/json"):
+        self.send_response(code)
+        self.send_header("Content-Type", kind)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
-        # /eeg/<user>.json -> that person's recorded SSVEP replay file
-        if self.path.startswith("/eeg/") and self.path.endswith(".json"):
-            user = "".join(c for c in self.path[5:-5] if c.isalnum() or c in "-_")
-            path = USERS / user / "sim_replay.json"
-            if not path.is_file():
-                self.send_error(404, f"No EEG replay for '{user}'. Run tools/ssvep_train.py --user {user} and press Train.")
-                return
-            body = path.read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        super().do_GET()
+        path = profile_path(self.path.split("?")[0])
+        if path is None:
+            return super().do_GET()
+        if not path.is_file():
+            return self._reply(404, b'{"error": "no saved profile"}')
+        return self._reply(200, path.read_bytes())
+
+    def do_POST(self):
+        path = profile_path(self.path.split("?")[0])
+        n = int(self.headers.get("Content-Length") or 0)
+        if path is None or not 0 < n <= MAX_PROFILE:
+            return self._reply(400, b'{"error": "bad request"}')
+        body = self.rfile.read(n)
+        try:
+            json.loads(body)
+        except ValueError:
+            return self._reply(400, b'{"error": "not JSON"}')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+        return self._reply(200, json.dumps({"ok": True, "file": str(path.relative_to(HERE.parent))}).encode())
+
 
 
 def bind():

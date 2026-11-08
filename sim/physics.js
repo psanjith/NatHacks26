@@ -14,7 +14,7 @@ const CUBE_DENSITY = 600; // kg/m³, about pine: a 4 cm cube weighs ~38 g
 const FRICTION = 0.7;
 const RESTITUTION = 0.1;
 const MAX_HULL_POINTS = 20000;
-const PEDESTAL = { radius: 0.075, height: 0.062 }; // the round base on the board
+const PEDESTAL = { radius: 0.061, height: 0.056 }; // the arm's round base on the board (01_Base)
 const TOUCH_DISTANCE = 0.001; // a finger within 1 mm of a cube touches it
 const REST_SPEED = 0.01; // m/s: below this a cube counts as settled
 

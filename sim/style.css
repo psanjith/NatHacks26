@@ -97,32 +97,11 @@ button:focus-visible, input:focus-visible {
   font-size: 12px;
 }
 
-.camera-page { background: #000; }
-.camera-page #viewport { display: grid; place-items: center; }
+.camera-page { --dock: min(210px, 30vh); background: #000; }
+.camera-page #viewport { display: grid; place-items: center; bottom: var(--dock); }
 .camera-page #viewport canvas { position: static; grid-area: 1 / 1; }
 .camera-page #viewport canvas.overlay { pointer-events: none; }
 
-.camera-toolbar {
-  position: fixed;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px 10px;
-  width: max-content;
-  max-width: calc(100vw - 32px);
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-  font-size: 13px;
-}
-
-.camera-toolbar .warning { color: #ffcf6e; }
-.camera-toolbar #detect-status { color: var(--muted); }
 button:disabled { opacity: 0.45; cursor: default; }
 
 .camera-status {
@@ -152,4 +131,94 @@ button:disabled { opacity: 0.45; cursor: default; }
 #loading[hidden] { display: none; }
 
 .buttons .wide { grid-column: 1 / -1; }
-.eeg-trace { width: 100%; height: 44px; display: block; margin: -4px 0 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.25); }
+
+/* Eye tracker + jaw clench (camera tab) */
+.gaze-prompt {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(720px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 207, 110, 0.5);
+  border-radius: 10px;
+  background: rgba(24, 27, 32, 0.92);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  z-index: 5;
+}
+.gaze-prompt[hidden] { display: none; }
+
+.eyes-line { margin: 4px 0; color: var(--muted); font-size: 12px; }
+.webcam { width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 6px; background: #000; }
+.webcam[hidden] { display: none; }
+.webcam video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+.jaw-meter { position: relative; height: 10px; margin-top: 8px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.jaw-meter #jaw-fill { height: 100%; width: 0; background: #4db0ff; transition: width 80ms linear; }
+.jaw-meter.fired #jaw-fill { background: #50dc8c; }
+.jaw-meter #jaw-mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #ffcf6e; }
+.jaw-meter #jaw-mark[hidden] { display: none; }
+
+.gaze-dot {
+  position: fixed;
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ffcf6e;
+  border-radius: 50%;
+  background: rgba(255, 207, 110, 0.25);
+  pointer-events: none;
+  z-index: 6;
+}
+.gaze-dot[hidden] { display: none; }
+.gaze-layer { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 10; }
+.gaze-layer[hidden] { display: none; }
+.panel .hint-small { margin: -6px 0 10px; color: var(--muted); font-size: 12px; }
+#loading { z-index: 20; }
+
+/* Camera tab dock: live EEG + eyes/jaw status */
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--dock);
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  background: #14171c;
+}
+.waves { flex: 1; min-width: 0; height: 100%; border-radius: 8px; display: block; }
+.dock-side { width: 260px; flex: none; overflow-y: auto; font-size: 13px; }
+.dock-side .buttons { margin: 6px 0 4px; }
+.dock-side .buttons button { font-size: 12px; padding: 6px; }
+.dock-side .hint { margin: 2px 0 0; font-size: 11px; }
+.dock-side .webcam { width: 96px; float: right; margin: 0 0 4px 8px; }
+.camera-status { z-index: 5; }
+@media (max-width: 700px) {
+  .dock { flex-direction: column; height: auto; }
+  .waves { height: 120px; flex: none; }
+  .dock-side { width: auto; }
+}
+
+/* Main page */
+button.primary { background: #2f6fd6; border-color: #4d8cf0; font-weight: 600; padding: 10px 8px; }
+button.primary:hover { background: #3b7ce6; }
+.imp-rows { margin: 4px 0 0; }
+.imp-row { display: grid; grid-template-columns: 12px 34px 1fr auto; gap: 6px; align-items: center; font-size: 12px; padding: 2px 0; }
+.imp-row .k { color: var(--muted); font-variant-numeric: tabular-nums; }
+.imp-row .dot { width: 9px; height: 9px; border-radius: 50%; background: #555; }
+.imp-row .dot.good { background: #50dc8c; }
+.imp-row .dot.warn { background: #ffcf6e; }
+.imp-row .dot.bad { background: #ff6b6b; }
+.gaze-dot { width: 26px; height: 26px; left: -13px; top: -13px; border-width: 3px; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35); transition: transform 40ms linear; }
+.gaze-dot.away { border-color: #8a93a6; border-style: dashed; background: rgba(138, 147, 166, 0.15); }
+.gaze-dot.talking { border-color: #ff7eb6; }
+.person { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 12px; color: var(--muted); }
+.person input { flex: 1; min-width: 0; padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; }
+

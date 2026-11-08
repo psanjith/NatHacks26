@@ -7,15 +7,15 @@ import { scatterObjects } from "./objects.js";
 import { createPhysics } from "./physics.js";
 import { STATE_CHANNEL, armPose, createRenderer, createScene } from "./scene.js";
 import { createPickAndPlace } from "./task.js";
-import { createEegChooser, drawTrace, loadReplay } from "./eeg-replay.js";
+import { createBci } from "./bci.js";
 
 // park (degrees) swings the arm to one side, high above the basket, so the table
 // camera sees every object and every board sticker.
 const ARM_JOINTS = [
   { name: "yaw_joint", label: "Yaw", park: -90 },
-  { name: "shoulder_joint", label: "Shoulder", park: 0 },
-  { name: "elbow_joint", label: "Elbow", park: 25 },
-  { name: "wrist_joint", label: "Wrist", park: 30 },
+  { name: "shoulder_joint", label: "Shoulder", park: -10 },
+  { name: "elbow_joint", label: "Elbow", park: -20 },
+  { name: "roll_joint", label: "Wrist roll", park: 0 },
 ];
 const ARM_SPEED = 70; // degrees per second for animated moves
 const HOME_VIEW = { position: [0.3, -1.95, 1.25], target: [0.42, 0, 0.22] };
@@ -30,7 +30,7 @@ const taskStatus = document.getElementById("task-status");
 const renderer = createRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById("viewport").append(renderer.domElement);
-const { scene, reachBand, tableCamera } = createScene(renderer);
+const { scene, tableCamera } = createScene(renderer);
 const objects = scene.getObjectByName("objects");
 
 const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.01, 30);
@@ -55,6 +55,13 @@ const requestRender = () => {
 const channel = new BroadcastChannel(STATE_CHANNEL);
 let arm = null;
 let shownTargets = { targets: [], selected: null };
+let gazeMode = false; // "Pick with eyes + clench" is running: the camera tab shows grey/yellow boxes
+let gazeWait = null; // a pick waiting for the camera tab: { resolve, reachable }
+let stopGaze = () => {};
+let startGaze = () => {};
+// The camera tab reports in every 2 s: { seen (ms), ready, eyes, headset, clench }
+const cameraTab = { seen: -1e9, ready: false };
+const cameraOpen = () => performance.now() - cameraTab.seen < 5000;
 const position = new THREE.Vector3();
 const rotation = new THREE.Quaternion();
 const size = new THREE.Vector3();
@@ -85,16 +92,98 @@ const worldChanged = () => {
   queueState();
   requestRender();
 };
-const publishTargets = (targets, selected) => {
-  shownTargets = { targets, selected };
+const publishTargets = (targets, selected, extra = {}) => {
+  shownTargets = { targets, selected, mode: gazeMode ? "gaze" : null, ...extra };
   channel.postMessage({ type: "targets", ...shownTargets });
 };
 channel.onmessage = ({ data }) => {
   if (data.type === "request-state" && arm) {
     sendState();
     channel.postMessage({ type: "targets", ...shownTargets });
+  } else if (data.type === "gaze-select" && gazeWait) {
+    // The camera tab: the person looked at a cube and clenched.
+    const target = gazeWait.reachable.find((t) => t.id === data.id);
+    if (target) {
+      const { resolve } = gazeWait;
+      gazeWait = null;
+      resolve({ target, line: `Eyes + clench chose cube ${target.id}.` });
+    } else {
+      // out of reach (or stale): show the choices again
+      publishTargets(gazeWait.onTable, null, { reachable: gazeWait.reachable.map((t) => t.id) });
+    }
+  } else if (data.type === "gaze-cancel") {
+    stopGaze();
+  } else if (data.type === "gaze-start") {
+    startGaze(); // the camera tab finished setting up
+  } else if (data.type === "camera-status") {
+    Object.assign(cameraTab, data, { seen: performance.now() });
+    showCameraLine();
   }
 };
+channel.postMessage({ type: "camera-ping" });
+
+const cameraLine = document.getElementById("camera-line");
+function showCameraLine() {
+  if (!cameraOpen()) cameraLine.textContent = "Camera tab: not open";
+  else if (!cameraTab.ready) cameraLine.textContent = "Camera tab: setting up (eyes, then jaw)…";
+  else cameraLine.textContent = `Camera tab: ready · eyes ${cameraTab.eyes ? "calibrated" : "off (mouse)"} · ` +
+    (cameraTab.headset ? `jaw ${cameraTab.clench ? "checked" : "not checked"}` : "no headset (space bar = clench)");
+}
+setInterval(showCameraLine, 2500);
+
+// ---------------------------------------------------------------- headset: status and impedance check
+const headsetStatus = document.getElementById("headset-status");
+const impButton = document.getElementById("imp-check");
+const impRows = document.getElementById("imp-rows");
+const IMP_MAX_S = 45; // impedance mode pauses the EEG, so it switches itself off after this long
+let impOn = false;
+let impTimer = null;
+const lastKohm = {};
+const impWord = (k) => (k < 50 ? ["good", "good"] : k < 150 ? ["okay", "warn"] : ["poor contact", "bad"]);
+function showImpedance(chans, live) {
+  for (const c of chans) if (c.kohm != null) lastKohm[c.name] = c.kohm;
+  const names = chans.length ? chans.map((c) => c.name) : Object.keys(lastKohm);
+  if (!names.length) return;
+  impRows.hidden = false;
+  impRows.innerHTML = names.map((name) => {
+    const k = live ? chans.find((c) => c.name === name)?.kohm : lastKohm[name];
+    const [word, level] = k == null ? ["measuring…", ""] : impWord(k);
+    return `<div class="imp-row"><span class="dot ${level}"></span><b>${name}</b><span>${word}</span>` +
+      `<span class="k">${k == null ? "–" : `${k.toFixed(1)} kΩ`}</span></div>`;
+  }).join("") + `<p class="hint-small">${live ? "Measuring now (EEG paused). " : "Last check. "}Good under 50 kΩ.</p>`;
+}
+const bci = createBci({
+  interval: 500,
+  onLive: ({ connected, live }) => {
+    if (!connected) {
+      headsetStatus.textContent = "Not connected. Start it with: python tools/ssvep_train.py --native --user nav";
+      return;
+    }
+    const stale = live.stale_s != null && live.stale_s > 3 ? ` · no data for ${Math.round(live.stale_s)} s (Bluetooth?)` : "";
+    const jaw = live.clench.calibrated?.ok ? "jaw clench checked" : "jaw clench not checked yet";
+    const where = live.montage === "face" ? "eye corners + jaw + T7" : live.names.join(" ");
+    headsetStatus.textContent = `${live.source}, ${live.fs} Hz, ${where}${stale} · ${jaw}`;
+    if (impOn) showImpedance(live.imp.chans, true);
+  },
+});
+async function setImpedance(on) {
+  if (!bci.connected) {
+    headsetStatus.textContent = "No headset: start tools/ssvep_train.py first.";
+    return;
+  }
+  const result = await bci.impedance(on);
+  if (result.error) {
+    headsetStatus.textContent = result.error;
+    return;
+  }
+  impOn = on;
+  impButton.textContent = on ? "Done: resume EEG" : "Check electrodes (impedance)";
+  bci.setInterval(on ? 250 : 500);
+  clearTimeout(impTimer);
+  if (on) impTimer = setTimeout(() => setImpedance(false), IMP_MAX_S * 1000);
+  else showImpedance([], false);
+}
+impButton.addEventListener("click", () => setImpedance(!impOn));
 
 controls.addEventListener("change", () => (needsRender = true));
 window.addEventListener("resize", () => {
@@ -245,7 +334,7 @@ async function start() {
     if (busy) return null;
     busy = true;
     panel.classList.add("busy");
-    panel.querySelectorAll("button, input").forEach((element) => (element.disabled = true));
+    panel.querySelectorAll("button:not([data-keep]), input").forEach((element) => (element.disabled = true));
     try {
       return await job();
     } catch (error) {
@@ -270,57 +359,80 @@ async function start() {
     publishTargets([], null);
     taskStatus.textContent = "Cubes scattered";
     worldChanged();
+    if (cameraOpen() && cameraTab.ready) setTimeout(startGaze, 300); // straight back to picking
   };
-  const pick = () => runTask(() => task.pickRandom());
 
-  // Brain control from recorded EEG: ?user=<name> picks whose recordings (default nav).
-  const eegUser = new URLSearchParams(location.search).get("user") || "nav";
-  const eegButton = document.getElementById("pick-eeg");
-  const eegStats = document.getElementById("eeg-stats");
-  eegButton.textContent = `Pick with ${eegUser[0].toUpperCase() + eegUser.slice(1)}’s EEG`;
-  let eeg = null;
-  const pickWithEeg = () => runTask(async () => {
-    if (!eeg) {
-      try {
-        eeg = createEegChooser(await loadReplay(eegUser));
-      } catch (error) {
-        taskStatus.textContent = error.message;
-        return { ok: false, reason: error.message };
-      }
+  // The main thing: the camera tab tracks the eyes (the cube looked at turns yellow) and a jaw
+  // clench picks it. Repeats until stopped (Esc, the button again) or no cube is left in reach.
+  const gazeButton = document.getElementById("pick-gaze");
+  const gazeChooser = ({ onTable, reachable }) => new Promise((resolve) => {
+    gazeWait = { resolve, reachable, onTable };
+    publishTargets(onTable, null, { reachable: reachable.map((t) => t.id) });
+    taskStatus.textContent = "In the camera tab: look at a cube, clench to pick it (Esc stops)";
+  });
+  stopGaze = () => {
+    if (!gazeMode) return;
+    gazeMode = false;
+    gazeButton.textContent = "Stopping after this pick…";
+    if (gazeWait) {
+      const { resolve } = gazeWait;
+      gazeWait = null;
+      resolve({ target: null, line: "Stopped.", cancelled: true });
     }
-    const result = await task.pickRandom((options) => {
-      const decision = eeg.choose(options);
-      if (decision.trial) drawTrace(document.getElementById("eeg-trace"), decision.trial.trace_oz);
-      return decision;
+  };
+  const pickWithGaze = async () => {
+    if (gazeMode) return stopGaze();
+    if (busy) return null;
+    if (!cameraOpen()) {
+      // The camera tab sets itself up (eyes, jaw) and then starts picking by itself.
+      window.open(`camera.html${location.search}`, "pnjex-table-camera");
+      taskStatus.textContent = "Opening the camera tab: it calibrates, then picking starts.";
+      return null;
+    }
+    if (impOn) await setImpedance(false);
+    gazeMode = true;
+    gazeButton.textContent = "Stop";
+    let picks = 0;
+    let landed = 0;
+    let nothingLeft = false;
+    await runTask(async () => {
+      while (gazeMode) {
+        const result = await task.pickCube(gazeChooser);
+        if (!result.decision) nothingLeft = true;
+        if (!result.decision?.target) break; // stopped, or nothing left to pick
+        picks += 1;
+        if (result.landed) landed += 1;
+      }
     });
-    const { n, right, wrong, unsure } = eeg.tally;
-    const r = eeg.replay;
-    eegStats.textContent = `Replayed ${n} of ${r.trials.length} recorded trials: ${right} right, ${wrong} wrong, ${unsure} not sure ` +
-      `(${r.method}, ${r.win} s look, cross-validated ${Math.round(100 * r.cv_acc)}%)`;
-    return result;
+    gazeMode = false;
+    gazeButton.textContent = "Pick with eyes + clench";
+    publishTargets([], null, nothingLeft ? { note: "No cubes left in reach. Press Scatter cubes in the sim tab." } : {});
+    if (picks) taskStatus.textContent += ` (${landed} of ${picks} picks landed in the basket)`;
+    return { picks, landed };
+  };
+  startGaze = () => {
+    if (!gazeMode && !busy) pickWithGaze();
+  };
+  gazeButton.addEventListener("click", pickWithGaze);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") stopGaze();
   });
 
   // Animated rather than instant: a part that jumps through a cube would launch it.
   document.getElementById("home-pose").addEventListener("click", () => runTask(() => moveArm([0, 0, 0, 0], 0)));
   document.getElementById("park-pose").addEventListener("click", () => runTask(park));
   document.getElementById("scatter").addEventListener("click", scatter);
-  document.getElementById("pick").addEventListener("click", pick);
-  eegButton.addEventListener("click", pickWithEeg);
   document.getElementById("open-camera").addEventListener("click", () => {
-    window.open("camera.html", "pnjex-table-camera");
+    window.open(`camera.html${location.search}`, "pnjex-table-camera");
   });
   document.getElementById("reset-view").addEventListener("click", () => {
     camera.position.fromArray(HOME_VIEW.position);
     controls.target.fromArray(HOME_VIEW.target);
     needsRender = true;
   });
-  document.getElementById("show-reach").addEventListener("change", (event) => {
-    reachBand.visible = event.target.checked;
-    needsRender = true;
-  });
 
   // Console access for trying things out while the sim grows.
-  window.sim = { renderer, scene, camera, tableCamera, controls, arm, kinematics, physics, task, requestRender, scatter, pick, pickWithEeg, moveArm, waitForRest };
+  window.sim = { renderer, scene, camera, tableCamera, controls, arm, kinematics, physics, task, requestRender, scatter, pickWithGaze, stopGaze, moveArm, waitForRest, bci };
   requestRender();
   loading.hidden = true;
 }

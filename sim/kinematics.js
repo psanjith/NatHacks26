@@ -3,9 +3,13 @@ import { solveLinear } from "./linalg.js";
 
 // Forward and inverse kinematics for the arm's four main joints, built from the
 // same joint chain the renderer uses (arm.json), so they always agree.
-export const ARM_JOINT_NAMES = ["yaw_joint", "shoulder_joint", "elbow_joint", "wrist_joint"];
+// The claw points along the forearm (there's no wrist pitch), so how steeply it comes down follows
+// from where the shoulder and elbow put it; the wrist roll turns the fingers so they close
+// sideways (horizontally) on the cube.
+export const ARM_JOINT_NAMES = ["yaw_joint", "shoulder_joint", "elbow_joint", "roll_joint"];
 
 const MEASURE_CLAW = 0.5; // grip point is measured with the claw half closed
+const PAD_BACK = 0.012; // grip point: this far back from the fingertips, mid-pad
 
 export function createKinematics(arm) {
   const chain = ARM_JOINT_NAMES.map((name) => {
@@ -13,30 +17,32 @@ export function createKinematics(arm) {
     return { name, offset: joint.group.position.clone(), axis: joint.axis.clone(), range: joint.range };
   });
   const palm = arm.root.getObjectByName("wrist_palm");
-  const grip = measureGripPoint(arm, palm); // in the palm's frame
+  const { grip, closing } = measureClaw(arm, palm); // in the palm's frame
   const pointing = grip.clone().normalize(); // palm origin towards the grip point
   const turn = new THREE.Quaternion();
 
   function forward(angles) {
     const position = grip.clone();
     const axis = pointing.clone();
+    const across = closing.clone();
     for (let i = chain.length - 1; i >= 0; i -= 1) {
       turn.setFromAxisAngle(chain[i].axis, angles[i]);
       position.applyQuaternion(turn).add(chain[i].offset);
       axis.applyQuaternion(turn);
+      across.applyQuaternion(turn);
     }
-    return { position, axis };
+    return { position, axis, across };
   }
 
   const current = () => chain.map(({ name }) => arm.joints.get(name).value);
   const clamp = (angles) => angles.map((v, i) => Math.min(chain[i].range[1], Math.max(chain[i].range[0], v)));
 
-  // Damped least squares on [position error, how far the claw is from pointing
-  // straight down]. Pointing down is a soft preference, position is what counts.
+  // Damped least squares on [position error, fingers closing horizontally, how far the claw is
+  // from pointing straight down]. Position counts most; level fingers next; steepness is a nudge.
   function descend(target, start, downWeight, iterations) {
     const residual = (angles) => {
-      const { position, axis } = forward(angles);
-      return [position.x - target.x, position.y - target.y, position.z - target.z, downWeight * (axis.z + 1)];
+      const { position, axis, across } = forward(angles);
+      return [position.x - target.x, position.y - target.y, position.z - target.z, 0.05 * across.z, downWeight * (axis.z + 1)];
     };
     const cost = (r) => r.reduce((sum, v) => sum + v * v, 0);
     let angles = clamp(start);
@@ -72,18 +78,20 @@ export function createKinematics(arm) {
     const heading = Math.atan2(target.y, target.x);
     const starts = [
       ...seeds,
-      [heading, 0, 0, 0],
-      [heading + 0.2, -0.3, -0.3, 0.3],
-      [heading + 0.2, 0.3, 0.3, -0.2],
-      [heading + 0.3, -0.5, 0.4, 0.5],
+      [heading, 0.6, 0.3, 0],
+      [heading, 0.3, -0.2, 0],
+      [heading, 0.9, 0.6, 0],
+      [heading, 0.6, 0.3, 1.2],
+      [heading, 0.6, 0.3, -1.2],
     ];
     let best = null;
     for (const start of starts) {
       const rough = descend(target, start, 0.03, 120);
       const angles = descend(target, rough, 0.002, 60); // tighten position
-      const { position, axis } = forward(angles);
-      const result = { angles, error: position.distanceTo(target), downness: -axis.z };
-      if (!best || result.error + 0.01 * (1 - result.downness) < best.error + 0.01 * (1 - best.downness)) best = result;
+      const { position, axis, across } = forward(angles);
+      const result = { angles, error: position.distanceTo(target), downness: -axis.z, tilt: Math.abs(across.z) };
+      const score = (x) => x.error + 0.01 * (1 - x.downness) + 0.005 * x.tilt;
+      if (!best || score(result) < score(best)) best = result;
     }
     return best;
   }
@@ -91,18 +99,21 @@ export function createKinematics(arm) {
   return { solve, forward, current, gripPoint: () => forward(current()).position, chain };
 }
 
-// The grip point is the centre of the three fingertips, expressed in the palm's frame.
-function measureGripPoint(arm, palm) {
+// The grip point is between the two finger pads, and "closing" is the direction from one fingertip
+// to the other, both in the palm's frame.
+function measureClaw(arm, palm) {
   const saved = [...arm.joints].map(([name, joint]) => [name, joint.value]);
+  const savedClaw = arm.claw;
   arm.setClaw(MEASURE_CLAW);
   arm.root.updateMatrixWorld(true);
   const palmOrigin = new THREE.Vector3().setFromMatrixPosition(palm.matrixWorld);
-  const centre = new THREE.Vector3();
+  const tips = [];
   const vertex = new THREE.Vector3();
-  for (const finger of [1, 2, 3]) {
+  arm.root.traverse((group) => {
+    if (!/^finger_\d+_tip$/.test(group.name)) return;
     let tip = null;
     let farthest = -1;
-    arm.root.getObjectByName(`finger_${finger}_distal`).traverse((part) => {
+    group.children.forEach((part) => {
       if (!part.isMesh) return;
       const positions = part.geometry.attributes.position;
       for (let i = 0; i < positions.count; i += 1) {
@@ -111,10 +122,18 @@ function measureGripPoint(arm, palm) {
         if (distance > farthest) { farthest = distance; tip = vertex.clone(); }
       }
     });
-    centre.add(tip);
-  }
-  centre.multiplyScalar(1 / 3);
+    tips.push(tip);
+  });
+  const centre = tips.reduce((sum, t) => sum.add(t), new THREE.Vector3()).multiplyScalar(1 / tips.length);
+  const back = palmOrigin.clone().sub(centre).normalize().multiplyScalar(PAD_BACK);
+  const gripWorld = centre.add(back);
+  const acrossWorld = tips[1].clone().sub(tips[0]);
   saved.forEach(([name, value]) => arm.setJoint(name, value));
+  arm.setClaw(savedClaw);
   arm.root.updateMatrixWorld(true);
-  return palm.worldToLocal(centre);
+  const grip = palm.worldToLocal(gripWorld.clone());
+  const palmRotation = new THREE.Quaternion();
+  palm.getWorldQuaternion(palmRotation);
+  const closing = acrossWorld.applyQuaternion(palmRotation.invert()).normalize();
+  return { grip, closing };
 }

@@ -1,7 +1,8 @@
 import * as THREE from "three";
 
-// Claw 0 is open and 1 is closed; each finger joint moves across its full range.
-const FINGERS = [1, 2, 3];
+// The team's arm (finalll2222(1).STEP, packed by tools/export_arm.py): yaw, shoulder, elbow and
+// wrist roll, then a parallel claw (two gear-driven four-bar linkages). Claw 0 is open and 1 is
+// closed; every claw joint follows the linkage table in arm.json, interpolated.
 
 function surfaceFor(rgba) {
   const [r, g, b] = rgba;
@@ -98,14 +99,15 @@ export async function loadArm(onProgress = () => {}) {
     return joint.value;
   }
 
+  let claw = 0;
   function setClaw(amount) {
-    for (const finger of FINGERS) {
-      for (const link of ["proximal", "distal"]) {
-        const name = `finger_${finger}_${link}_joint`;
-        setJoint(name, amount * joints.get(name).range[1]);
-      }
-    }
+    claw = THREE.MathUtils.clamp(amount, 0, 1);
+    const x = claw * (model.claw.samples - 1);
+    const i = Math.min(Math.floor(x), model.claw.samples - 2);
+    const f = x - i;
+    for (const [name, table] of Object.entries(model.claw.joints)) setJoint(name, table[i] * (1 - f) + table[i + 1] * f);
   }
+  setClaw(0);
 
-  return { root, joints, setJoint, setClaw };
+  return { root, joints, setJoint, setClaw, get claw() { return claw; } };
 }
