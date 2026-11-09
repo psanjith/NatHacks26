@@ -261,10 +261,7 @@ class Trainer(base.Bench):
     def __init__(self, src, ssvep_idx, user, stamp, decoder="ours", montage="ssvep"):
         self.user = user
         self.montage = montage
-        self.tb = None
-        if decoder not in ("ours", "rl"):
-            import ssvep_toolbox
-            self.tb = ssvep_toolbox.ToolboxDecoder(decoder, src.fs)
+        self.tb = None  # was an optional SSVEP-Analysis-Toolbox decoder; the toolbox is no longer in the repo
         self.dir = os.path.join(ROOT, "logs", "users", user)
         self.session = stamp
         self.sdir = os.path.join(self.dir, stamp)
@@ -852,9 +849,9 @@ def main():
     ap.add_argument("--tries", type=int, default=6)
     ap.add_argument("--ssvep-ch", default="1,2,3", help="SSVEP channels (default 1,2,3 = O1,Oz,O2)")
     ap.add_argument("--http", type=int, default=8766)
-    ap.add_argument("--decoder", default="rl", choices=["rl", "ours", "ecca", "etrca", "msetrca", "tdca", "fbcca"],
+    ap.add_argument("--decoder", default="rl", choices=["rl", "ours"],
                     help="rl (default): FFT-peak rule decides, RL agent learns alongside and takes over once it beats it; "
-                         "ours = old FBCCA/TRCA; the rest are SSVEP-Analysis-Toolbox models (need the py3.9 venv)")
+                         "ours = old FBCCA/TRCA")
     ap.add_argument("--montage", choices=["ssvep", "face"], default="ssvep",
                     help="ssvep (default): O1 Oz O2 T7. face: ch1 left eye corner, ch2 right eye corner, ch3 jaw muscle, "
                          "ch4 T7 (glances + jaw clench for the sim's eyes + clench control)")
