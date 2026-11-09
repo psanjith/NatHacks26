@@ -74,9 +74,10 @@ export function createKinematics(arm) {
   }
 
   // Joint angles (radians) that put the grip point on target, or the closest found.
-  function solve(target, { seeds = [] } = {}) {
+  // onlySeeds: try just the given seeds (fast, for checking many nearby points in a row).
+  function solve(target, { seeds = [], onlySeeds = false } = {}) {
     const heading = Math.atan2(target.y, target.x);
-    const starts = [
+    const starts = onlySeeds && seeds.length ? seeds : [
       ...seeds,
       [heading, 0.6, 0.3, 0],
       [heading, 0.3, -0.2, 0],

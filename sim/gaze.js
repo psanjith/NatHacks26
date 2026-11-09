@@ -154,6 +154,87 @@ export function fitGaze(samples) {
   return wx && wy ? { mean, std, wx, wy, offset: [0, 0] } : null;
 }
 
+// ---------------------------------------------------------------- cleaning up calibration frames
+const DOT_MS = 2200; // how long each still dot stays up
+const DOT_SETTLE_MS = 800; // frames from before this are ignored: the eyes are still getting there
+const BLINK_GAP_MS = 120; // no usable frame for this long = a blink or a lost face (or 3 frame times, if slower)
+const BLINK_GUARD_MS = 120; // eyelids are part closed around a blink, so frames this close to one go too
+const OUTLIER_Z = 4; // a frame this many spreads from the dot's typical value...
+const OUTLIER_FEATURES = 2; // ...on this many inputs is dropped (eyes moving shift several together; one can just be jitter)
+
+// Drops the frames right before and after a gap in the frames. Samples need t (ms).
+export function dropBlinkEdges(samples) {
+  if (samples.length < 3) return samples;
+  const steps = samples.slice(1).map((s, i) => s.t - samples[i].t).sort((a, b) => a - b);
+  const limit = Math.max(BLINK_GAP_MS, 3 * steps[steps.length >> 1]);
+  const gaps = [];
+  for (let i = 1; i < samples.length; i += 1) if (samples[i].t - samples[i - 1].t > limit) gaps.push([samples[i - 1].t, samples[i].t]);
+  return samples.filter((s) => !gaps.some(([a, b]) => s.t >= a - BLINK_GUARD_MS && s.t <= b + BLINK_GUARD_MS));
+}
+
+// One still dot's frames without blink edges and frames that disagree with the rest (a glance away,
+// eyes not settled). The eyes should be still here, so "typical" is the median of each input.
+export function cleanDot(samples) {
+  const clear = dropBlinkEdges(samples);
+  if (clear.length < 5) return clear;
+  const median = (values) => values.slice().sort((a, b) => a - b)[values.length >> 1];
+  const d = clear[0].f.length;
+  const mid = [];
+  const spread = [];
+  for (let i = 0; i < d; i += 1) {
+    const values = clear.map((s) => s.f[i]);
+    mid[i] = median(values);
+    spread[i] = Math.max(1.4826 * median(values.map((v) => Math.abs(v - mid[i]))), 0.1 * (MIN_SPREAD[i] ?? 0.01));
+  }
+  return clear.filter((s) => s.f.filter((v, i) => Math.abs(v - mid[i]) / spread[i] > OUTLIER_Z).length < OUTLIER_FEATURES);
+}
+
+// ---------------------------------------------------------------- is a calibration good enough?
+export const GOOD_ERROR_PX = 175; // median error a profile must reach (about 12% of a laptop screen's width)
+const WORST_DOT_FACTOR = 2; // and no single dot may be off by more than this many times that
+const MIN_DOT_SAMPLES = 10; // a dot with fewer clear frames than this has to be redone
+const MIN_DOTS = 7; // the fit needs at least this many usable dots
+const DOTS_PER_ROUND = 3; // dots redone per round before scoring again
+
+// dots: Map of dot id -> its samples. Each dot's error is predicted from a fit made without it, so it's
+// an honest error, not how well the fit remembers its own data. A dot that can't be judged counts as
+// Infinity. Returns { fitted, errors (Map id -> px), medianPx, worstPx }.
+export function calibrationErrors(dots, head = []) {
+  const usable = [...dots].filter(([, samples]) => samples.length >= MIN_DOT_SAMPLES);
+  const errors = new Map([...dots.keys()].map((id) => [id, Infinity]));
+  const fitted = usable.length >= MIN_DOTS ? fitGaze([...usable.flatMap(([, samples]) => samples), ...head]) : null;
+  if (!fitted) return { fitted: null, errors, medianPx: Infinity, worstPx: Infinity };
+  for (const [id, mine] of usable) {
+    const m = fitGaze([...usable.filter(([other]) => other !== id).flatMap(([, samples]) => samples), ...head]);
+    if (!m) continue;
+    const p = mine.map((s) => predictGaze(m, s.f, false));
+    errors.set(id, Math.hypot(p.reduce((a, q) => a + q.x, 0) / p.length - mine[0].x, p.reduce((a, q) => a + q.y, 0) / p.length - mine[0].y));
+  }
+  const sorted = [...errors.values()].sort((a, b) => a - b);
+  return { fitted, errors, medianPx: sorted[Math.floor(sorted.length / 2)], worstPx: sorted[sorted.length - 1] };
+}
+
+export const calibrationGood = ({ fitted, medianPx, worstPx }, goodPx = GOOD_ERROR_PX) =>
+  Boolean(fitted) && medianPx <= goodPx && worstPx <= WORST_DOT_FACTOR * goodPx;
+
+// Keeps sending the person back to the dots that are off until the calibration is good. There's no
+// limit on rounds: retake rejects (Esc) to give up, and then nothing is saved.
+// retake(ids, result, round) resolves to a Map of id -> new samples, which replace the old ones
+// (a bad dot's old samples are what's wrong, so they aren't kept).
+export async function refineCalibration({ dots, head = [], goodPx = GOOD_ERROR_PX, retake }) {
+  for (let round = 1; ; round += 1) {
+    const result = calibrationErrors(dots, head);
+    if (calibrationGood(result, goodPx)) return { ...result, rounds: round };
+    // Dots with too few clear frames first. Then the worst few: one bad dot skews every other dot's
+    // score, so most of the rest often look bad only because of it, and get better once it's redone.
+    const short = [...dots].filter(([, samples]) => samples.length < MIN_DOT_SAMPLES).map(([id]) => id);
+    const ids = short.length ? short : [...result.errors].filter(([, px]) => px > goodPx)
+      .sort((a, b) => b[1] - a[1]).slice(0, DOTS_PER_ROUND).map(([id]) => id);
+    const fresh = await retake(ids, result, round);
+    for (const id of ids) dots.set(id, fresh.get(id) ?? []);
+  }
+}
+
 // Gaze inputs from one frame (MediaPipe landmarks L, frame W x H, blendshape scores), given the face model.
 export function gazeInputs(template, L, W, H, score) {
   const { R, s, t } = fitPose(template, RIGID.map((i) => [L[i].x * W, L[i].y * H, L[i].z * W]));
@@ -194,7 +275,7 @@ const origin = () => ({ x: window.screenX + (window.outerWidth - window.innerWid
 
 export { RIGID, EYES };
 
-export function createGazeTracker() {
+export function createGazeTracker({ goodErrorPx = GOOD_ERROR_PX } = {}) {
   let landmarker = null;
   let video = null;
   let running = false;
@@ -210,10 +291,24 @@ export function createGazeTracker() {
   let lastJawOpen = -1e9; // when the jaw was last open (talking)
   const recent = []; // raw estimates of the last 3 s: { t, x, y } (screen pixels)
   let lastVideoTime = -1;
+  // Tracking quality, for switching to the headset's eye glances when the webcam can't keep up.
+  // brightness: mean brightness (0-255) of a tiny copy of the webcam image, a few times a second.
+  // jitter: median jump between consecutive raw gaze estimates over the last second, in px. A look
+  // from one cube to another is one big jump (the median ignores it); poor tracking jumps every frame.
+  // Both are judged against what they were at the last calibration or re-centre, not fixed numbers,
+  // since every webcam and room differs.
+  const tiny = document.createElement("canvas");
+  tiny.width = 32;
+  tiny.height = 24;
+  const tinyCtx = tiny.getContext("2d", { willReadFrequently: true });
+  let brightness = null;
+  let lastBrightness = 0;
+  let refBrightness = null;
+  let refJitter = null;
 
   async function start(preview) {
     if (running) return;
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }, audio: false });
     video = document.createElement("video");
     Object.assign(video, { muted: true, playsInline: true, autoplay: true, srcObject: stream });
     preview?.append(video);
@@ -237,10 +332,35 @@ export function createGazeTracker() {
     if (!running) return;
     if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
       lastVideoTime = video.currentTime;
-      update(landmarker.detectForVideo(video, performance.now()));
+      const now = performance.now();
+      update(landmarker.detectForVideo(video, now));
+      if (now - lastBrightness > 250) {
+        lastBrightness = now;
+        measureBrightness();
+      }
     }
     requestAnimationFrame(loop);
   }
+
+  const cameraSize = () => (video?.videoWidth ? { w: video.videoWidth, h: video.videoHeight } : null);
+
+  function measureBrightness() {
+    tinyCtx.drawImage(video, 0, 0, tiny.width, tiny.height);
+    const d = tinyCtx.getImageData(0, 0, tiny.width, tiny.height).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    brightness = sum / (d.length / 4);
+  }
+
+  // Median jump between consecutive points ({ x, y }), or null if there are too few.
+  function medianJump(points) {
+    if (points.length < 6) return null;
+    const jumps = [];
+    for (let i = 1; i < points.length; i += 1) jumps.push(Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y));
+    jumps.sort((a, b) => a - b);
+    return jumps[Math.floor(jumps.length / 2)];
+  }
+  const jitter = () => medianJump(recent.filter((p) => p.t >= performance.now() - 1000));
 
   function update(result) {
     const L = result.faceLandmarks?.[0];
@@ -336,7 +456,7 @@ export function createGazeTracker() {
           if (t > step.settle && frames !== seen) {
             const o = origin();
             if (step.kind === "face" && rigid) samples.push({ kind: "face", rigid: rigid.map((p) => p.slice()) });
-            else if (step.kind !== "face" && feat) samples.push({ kind: step.kind, f: feat.slice(), x: step.x + o.x, y: step.y + o.y, k: index });
+            else if (step.kind !== "face" && feat) samples.push({ kind: step.kind, f: feat.slice(), x: step.x + o.x, y: step.y + o.y, k: index, t: performance.now() });
           }
           seen = frames;
           await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -362,7 +482,7 @@ export function createGazeTracker() {
     const grid = [];
     for (const fy of [0.08, 0.5, 0.92]) for (const fx of [0.08, 0.5, 0.92]) grid.push([rect.left + fx * rect.width, rect.top + fy * rect.height]);
     const order = [4, ...[0, 1, 2, 3, 5, 6, 7, 8].sort(() => Math.random() - 0.5)];
-    const still = order.map((i) => ({ x: grid[i][0], y: grid[i][1], ms: 1700, settle: 600, kind: "still",
+    const still = order.map((i) => ({ x: grid[i][0], y: grid[i][1], ms: DOT_MS, settle: DOT_SETTLE_MS, kind: "still",
       text: "Look at each dot until it shrinks. Keep your head still." }));
     const moving = [
       [0.5, 0.5, "slowly turn your head left and right"],
@@ -373,33 +493,37 @@ export function createGazeTracker() {
     ].map(([fx, fy, how]) => ({ x: rect.left + fx * rect.width, y: rect.top + fy * rect.height, ms: 5000, settle: 400,
       kind: "head", text: `Eyes on the blue dot: ${how}` }));
     const samples = await runDots(canvas, [...still, ...moving]);
-    const stillSamples = samples.filter((s) => s.kind === "still");
-    const headSamples = samples.filter((s) => s.kind === "head").filter((_, i) => i % 2 === 0);
-    if (new Set(stillSamples.map((s) => s.k)).size < 7 || stillSamples.length < 60) {
+    const dots = new Map(order.map((id) => [id, []]));
+    for (const sample of samples) if (sample.kind === "still") dots.get(order[sample.k]).push(sample);
+    for (const [id, frames] of dots) dots.set(id, cleanDot(frames));
+    // The head moves on purpose during these dots, so only blink edges go. Each dot on its own: the gap between dots isn't a blink.
+    const headSamples = moving.flatMap((_, m) => dropBlinkEdges(samples.filter((s) => s.kind === "head" && s.k === still.length + m))).filter((_, i) => i % 2 === 0);
+    if (![...dots.values()].some((d) => d.length)) {
       template = null;
       return { ok: false, reason: face ? "too few clear looks (blinking, or the face was lost)" : "no face in the webcam" };
     }
-    const all = [...stillSamples, ...headSamples];
-    const fitted = fitGaze(all);
-    if (!fitted) {
-      template = null;
-      return { ok: false, reason: "could not fit (try again)" };
-    }
-    // Honest error: predict each still dot from a fit without it.
-    const errors = [];
-    for (const k of new Set(stillSamples.map((s) => s.k))) {
-      const m = fitGaze(all.filter((s) => s.k !== k));
-      const mine = stillSamples.filter((s) => s.k === k);
-      if (!m || !mine.length) continue;
-      const p = mine.map((s) => predictGaze(m, s.f, false));
-      errors.push(Math.hypot(p.reduce((a, q) => a + q.x, 0) / p.length - mine[0].x, p.reduce((a, q) => a + q.y, 0) / p.length - mine[0].y));
-    }
-    errors.sort((a, b) => a - b);
-    model = fitted;
+    // Not good enough: back to the dots that are off, until it is. Esc gives up (nothing is saved).
+    const result = await refineCalibration({
+      dots,
+      head: headSamples,
+      goodPx: goodErrorPx,
+      retake: async (ids, { medianPx }, round) => {
+        const how = Number.isFinite(medianPx) ? `Off by ${Math.round(medianPx)} px, needs ${goodErrorPx}.` : "Some dots weren't clear.";
+        const tip = round >= 3 ? " Light on your face, no window behind you, same distance." : "";
+        const steps = ids.map((id) => ({ x: grid[id][0], y: grid[id][1], ms: DOT_MS, settle: DOT_SETTLE_MS, kind: "still",
+          text: `${how} Look at each dot again, head still.${tip} (Esc gives up)` }));
+        const fresh = new Map(ids.map((id) => [id, []]));
+        for (const sample of await runDots(canvas, steps)) fresh.get(ids[sample.k]).push(sample);
+        for (const [id, frames] of fresh) fresh.set(id, cleanDot(frames));
+        return fresh;
+      },
+    });
+    model = result.fitted;
     screenPoint = null;
-    const errorPx = Math.round(errors[Math.floor(errors.length / 2)] ?? 0);
-    profileMeta = { person, screen: { w: screen.width, h: screen.height }, errorPx, saved: new Date().toISOString() };
-    return { ok: true, errorPx, samples: all.length };
+    const errorPx = Math.round(result.medianPx);
+    profileMeta = { person, screen: { w: screen.width, h: screen.height }, camera: cameraSize(), errorPx, saved: new Date().toISOString() };
+    refBrightness = brightness;
+    return { ok: true, errorPx, rounds: result.rounds };
   }
 
   const averageFace = faceModel;
@@ -412,6 +536,8 @@ export function createGazeTracker() {
     if (samples.length < 8) return { ok: false, reason: "no clear look at the dot" };
     const p = samples.map((s) => predictGaze(model, s.f, false));
     model.offset = [samples[0].x - p.reduce((a, q) => a + q.x, 0) / p.length, samples[0].y - p.reduce((a, q) => a + q.y, 0) / p.length];
+    refBrightness = brightness; // this session's lighting
+    refJitter = medianJump(p); // how much the estimate jumps while the eyes are still on one dot
     screenPoint = null;
     return { ok: true, shiftPx: Math.round(Math.hypot(...model.offset)) };
   }
@@ -451,9 +577,14 @@ export function createGazeTracker() {
     if (p.screen && (p.screen.w !== screen.width || p.screen.h !== screen.height)) {
       return { ok: false, reason: `made on a ${p.screen.w}×${p.screen.h} screen, this one is ${screen.width}×${screen.height}` };
     }
+    // The face model is in webcam pixels, so it only fits the size it was made at (older profiles: 640x480).
+    const madeAt = p.camera ?? { w: 640, h: 480 };
+    const now = cameraSize();
+    if (now && (madeAt.w !== now.w || madeAt.h !== now.h)) return { ok: false, reason: `made with a ${madeAt.w}×${madeAt.h} webcam image, this one is ${now.w}×${now.h}` };
+    if (p.errorPx > goodErrorPx) return { ok: false, reason: `its error is ${p.errorPx} px, it needs to be ${goodErrorPx} or less` };
     template = p.template;
     model = { ...p.model, offset: p.model.offset.slice() };
-    profileMeta = { person: p.person, screen: p.screen, errorPx: p.errorPx, saved: p.saved };
+    profileMeta = { person: p.person, screen: p.screen, camera: madeAt, errorPx: p.errorPx, saved: p.saved };
     screenPoint = null;
     return { ok: true };
   }
@@ -473,5 +604,8 @@ export function createGazeTracker() {
     get away() { return !model || away; },
     get talking() { return performance.now() - lastJawOpen < TALK_MS; },
     get profile() { return profileMeta; },
+    get camera() { return cameraSize(); }, // { w, h } the webcam actually gives, or null
+    // { brightness, refBrightness (0-255), jitter, refJitter (px) }; any can be null (not measured yet).
+    get quality() { return { brightness, refBrightness, jitter: jitter(), refJitter }; },
   };
 }

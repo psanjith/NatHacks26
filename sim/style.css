@@ -222,3 +222,7 @@ button.primary:hover { background: #3b7ce6; }
 .person { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 12px; color: var(--muted); }
 .person input { flex: 1; min-width: 0; padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; }
 
+
+/* Place anywhere toggle */
+.panel .check { display: flex; align-items: center; gap: 8px; margin: -4px 0 10px; font-size: 13px; cursor: pointer; }
+.panel .check input { margin: 0; }

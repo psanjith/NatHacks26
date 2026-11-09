@@ -57,6 +57,7 @@ let arm = null;
 let shownTargets = { targets: [], selected: null };
 let gazeMode = false; // "Pick with eyes + clench" is running: the camera tab shows grey/yellow boxes
 let gazeWait = null; // a pick waiting for the camera tab: { resolve, reachable }
+let placeWait = null; // a held cube waiting for the camera tab to say where it goes: { resolve, spots }
 let stopGaze = () => {};
 let startGaze = () => {};
 // The camera tab reports in every 2 s: { seen (ms), ready, eyes, headset, clench }
@@ -110,6 +111,14 @@ channel.onmessage = ({ data }) => {
     } else {
       // out of reach (or stale): show the choices again
       publishTargets(gazeWait.onTable, null, { reachable: gazeWait.reachable.map((t) => t.id) });
+    }
+  } else if (data.type === "place-select" && placeWait) {
+    // The camera tab: the person looked at a spot and clenched.
+    const spot = placeWait.spots.find((s) => s.id === data.id && s.ok);
+    if (spot) {
+      const { resolve } = placeWait;
+      placeWait = null;
+      resolve({ spot, line: spot.kind === "basket" ? "Chose the basket." : "Chose a spot on the table." });
     }
   } else if (data.type === "gaze-cancel") {
     stopGaze();
@@ -370,10 +379,22 @@ async function start() {
     publishTargets(onTable, null, { reachable: reachable.map((t) => t.id) });
     taskStatus.textContent = "In the camera tab: look at a cube, clench to pick it (Esc stops)";
   });
+  // Where the held cube goes: the camera tab shows the spots that pass the checks, the person
+  // looks at one and clenches. Stopping meanwhile puts it in the basket.
+  const placeAnywhere = document.getElementById("place-anywhere");
+  const gazePlacer = ({ spots }) => new Promise((resolve) => {
+    placeWait = { resolve, spots };
+    taskStatus.textContent = "In the camera tab: look where to put it, clench to place it (Esc: the basket)";
+  });
   stopGaze = () => {
     if (!gazeMode) return;
     gazeMode = false;
     gazeButton.textContent = "Stopping after this pick…";
+    if (placeWait) {
+      const { resolve } = placeWait;
+      placeWait = null;
+      resolve({ spot: null, line: "Stopped: into the basket." });
+    }
     if (gazeWait) {
       const { resolve } = gazeWait;
       gazeWait = null;
@@ -397,7 +418,8 @@ async function start() {
     let nothingLeft = false;
     await runTask(async () => {
       while (gazeMode) {
-        const result = await task.pickCube(gazeChooser);
+        const result = await task.pickCube(gazeChooser, { choosePlace: placeAnywhere.checked ? gazePlacer : null });
+        window.sim.lastResult = { ...result, status: taskStatus.textContent }; // for checking from the console
         if (!result.decision) nothingLeft = true;
         if (!result.decision?.target) break; // stopped, or nothing left to pick
         picks += 1;
@@ -407,7 +429,7 @@ async function start() {
     gazeMode = false;
     gazeButton.textContent = "Pick with eyes + clench";
     publishTargets([], null, nothingLeft ? { note: "No cubes left in reach. Press Scatter cubes in the sim tab." } : {});
-    if (picks) taskStatus.textContent += ` (${landed} of ${picks} picks landed in the basket)`;
+    if (picks) taskStatus.textContent += ` (${landed} of ${picks} picks landed where chosen)`;
     return { picks, landed };
   };
   startGaze = () => {

@@ -4,6 +4,10 @@
 //
 // Eye-tracker mode ("gaze"): every box is grey, the one being looked at is yellow, the one picked
 // (clench) turns green. Boxes the arm can't reach are dimmed and can't be picked.
+//
+// Place mode (the arm holds a cube): small green dots mark the spots that pass the checks, the
+// basket has a dashed outline, and the spot being looked at shows a ghost cube: green if it can
+// go there, red with the reason if not.
 const FREQUENCIES = [
   { hz: "7.5", period: 8, on: 4 },
   { hz: "8.57", period: 7, on: 4 },
@@ -27,6 +31,9 @@ export function createOverlay(parent) {
   let gazed = null;
   let reachable = null; // Set of ids, or null = all
   let view = FULL_VIEW; // shown part of the image (0-1 coordinates), for zooming in on the cubes
+  let place = null; // { spots, suggested } while choosing where to put a held cube
+  let placeGazed = null;
+  let placeSelected = null;
 
   // Image coordinates (0-1) -> canvas CSS pixels, through the current zoom.
   const P = (x, y) => [((x - view.x0) / view.s) * width, ((y - view.y0) / view.s) * height];
@@ -88,8 +95,37 @@ export function createOverlay(parent) {
     }
   }
 
+  function drawPlace() {
+    for (const spot of place.spots) {
+      if (!spot.ok || spot.kind !== "table") continue;
+      const [x, y] = P(spot.center[0], spot.center[1]);
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(80, 220, 140, 0.6)";
+      ctx.fill();
+    }
+    const basket = place.spots.find((s) => s.kind === "basket");
+    const shown = place.spots.find((s) => s.id === (placeSelected ?? placeGazed));
+    if (basket && basket !== shown) {
+      tracePatch(basket);
+      paint("rgba(80, 220, 140, 0.08)", "#50dc8c", 2, [6, 5]);
+      label(basket, "basket");
+    }
+    if (!shown) return;
+    tracePatch(shown);
+    if (shown.id === placeSelected) paint("rgba(80, 220, 140, 0.6)", "#50dc8c", 4);
+    else if (shown.ok) paint("rgba(80, 220, 140, 0.4)", "#50dc8c", 3);
+    else paint("rgba(235, 87, 87, 0.4)", "#eb5757", 3);
+    const name = shown.kind === "basket" ? "basket" : "here";
+    label(shown, shown.id === placeSelected ? `placing ${name === "here" ? "here" : "in the basket"}` : shown.ok ? name : `can't: ${shown.reason}`);
+  }
+
   function draw() {
     ctx.clearRect(0, 0, width, height);
+    if (place) {
+      drawPlace();
+      return;
+    }
     if (!targets.length) return;
     if (mode === "gaze" && !flickering) {
       drawGaze();
@@ -162,6 +198,27 @@ export function createOverlay(parent) {
       view = next ?? FULL_VIEW;
       draw();
     },
+    setPlace(next) {
+      place = next;
+      placeGazed = null;
+      placeSelected = null;
+      draw();
+    },
+    setPlaceGazed(id) {
+      if (id === placeGazed) return;
+      placeGazed = id;
+      draw();
+    },
+    setPlaceSelected(id) {
+      placeSelected = id;
+      draw();
+    },
+    // Where an image point (0-1 coordinates) is on screen (CSS px of the window).
+    screenOf(u, v) {
+      const rect = canvas.getBoundingClientRect();
+      const [x, y] = P(u, v);
+      return [rect.left + x, rect.top + y];
+    },
     // Where a target's centre is on screen (CSS px of the window).
     screenCenter(target) {
       const rect = canvas.getBoundingClientRect();
@@ -176,6 +233,9 @@ export function createOverlay(parent) {
     },
     get targets() {
       return targets;
+    },
+    get place() {
+      return place;
     },
     get selected() {
       return selected;

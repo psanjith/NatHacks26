@@ -1,12 +1,15 @@
 import * as THREE from "three";
 import { calibrate, pixelToPlane, worldToPixel } from "./calibrate.js";
 import { HEIGHT, WIDTH, captureFrame, convexHull, detectObjects } from "./detect.js";
-import { BASKET, CUBE_SIZE, TABLE_Z } from "./layout.js";
+import { BASKET, BOARD_SIZE, CUBE_SIZE, TABLE_Z } from "./layout.js";
+import { TABLE } from "./world.js";
 
 // Pick and place, using only what the table camera sees:
 // park -> calibrate from the board stickers -> detect cubes -> locate each on the
 // table -> plan the moves (inverse kinematics) -> the person picks a reachable cube ->
-// hover, descend, close, lift, move over the basket, release -> park.
+// hover, descend, close, lift -> (place anywhere) park while holding it, the person
+// looks at a spot on the table and clenches -> lower it there and let go; otherwise
+// move over the basket and release -> park.
 
 // Heights in metres. The arm's reach shrinks with height near its base, so each
 // stop uses the highest of its options the arm can reach.
@@ -23,6 +26,19 @@ const MAX_IK_ERROR = 0.005; // reject moves the arm can't reach within 5 mm
 // each other and tumble out.
 const BASKET_SPOTS = [[0.035, -0.035], [-0.035, -0.035], [0.035, 0.035], [0, 0]]; // the corner nearest the base is out of reach at this height
 // Real cube positions (from physics) are used only to report results, never to plan.
+
+// Place anywhere: candidate spots on a polar grid around the arm. Each passes or fails a
+// few checks, judged only from what the camera saw: reachable, free, on the table (off the
+// arm's base board), and inside the camera's view.
+const PLACE_GRID = { radii: [0.17, 0.2, 0.23, 0.26], yawMin: -85, yawMax: 85, yawStep: 10 };
+const PLACE_CLEARANCE = 0.008; // the cube's bottom is this far above the table when it's let go
+const PLACE_FREE = 0.06; // centre to centre: a 4 cm cube plus room for the fingers and some error
+const BOARD_MARGIN = 0.01; // the whole cube must be off the arm's base board (a 12.7 mm step), with this to spare
+const BASKET_MARGIN = 0.03; // and this far from the basket's walls
+const TABLE_MARGIN = 0.05; // and this far from the table's edge
+const IMAGE_MARGIN = 0.04; // the whole cube must be inside the image, this far from its edges
+const PLACE_TOLERANCE = 0.025; // landed within this of the chosen spot counts as placed there
+const SUGGESTED_SPOTS = 4; // table spots offered when choosing with glances (plus the basket)
 
 export function createPickAndPlace({
   kinematics, physics, renderer, scene, camera, objects,
@@ -56,6 +72,104 @@ export function createPickAndPlace({
   function calibrateCamera() {
     calibration = calibrate(captureFrame(renderer, scene, camera), camera.fov);
     return calibration;
+  }
+
+  // ---------------------------------------------------------------- place anywhere
+  // Joint angles to put a held cube down at (x, y): "above" it, then "lower" (the cube just
+  // clear of the table). Cached: it depends only on the spot, not on what's on the table.
+  const reachCache = new Map();
+  function placeMoves(x, y, seed) {
+    const key = `${x.toFixed(4)},${y.toFixed(4)}`;
+    if (reachCache.has(key)) return reachCache.get(key);
+    const centreZ = TABLE_Z + CUBE_SIZE / 2;
+    const stops = [["above", HOVER.map((h) => centreZ + h)], ["lower", [centreZ + GRASP_RAISE + PLACE_CLEARANCE]]];
+    const moves = {};
+    let previous = seed;
+    let result = null;
+    for (const [name, heights] of stops) {
+      let reached = null;
+      for (const z of heights) {
+        const target = new THREE.Vector3(x, y, z);
+        // A neighbouring spot's answer is usually right next to this one: try it alone first.
+        let solution = previous ? kinematics.solve(target, { seeds: [previous], onlySeeds: true }) : null;
+        if (!solution || solution.error > MAX_IK_ERROR) solution = kinematics.solve(target, { seeds: previous ? [previous] : [] });
+        if (solution && solution.error <= MAX_IK_ERROR) {
+          reached = solution;
+          break;
+        }
+      }
+      if (!reached) break;
+      moves[name] = degrees(reached.angles);
+      previous = reached.angles;
+    }
+    if (moves.above && moves.lower) result = { moves, seed: previous };
+    reachCache.set(key, result);
+    return result;
+  }
+
+  // Outline of a cube standing at (x, y), in image coordinates (0-1).
+  function cubeOutline(x, y) {
+    const corners = [];
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const z of [TABLE_Z, TABLE_Z + CUBE_SIZE]) {
+      corners.push(worldToPixel(calibration, x + sx * CUBE_SIZE / 2, y + sy * CUBE_SIZE / 2, z));
+    }
+    return convexHull(corners).map(([u, v]) => [u / WIDTH, v / HEIGHT]);
+  }
+
+  // The cheap checks, in order. Returns why a spot can't be used, or null if it can.
+  function spotProblem(x, y, hull, others) {
+    const base = BOARD_SIZE / 2 + BOARD_MARGIN + CUBE_SIZE / 2;
+    if (Math.abs(x) < base && Math.abs(y) < base) return "on the arm's base";
+    if (x < TABLE.minX + TABLE_MARGIN || x > TABLE.maxX - TABLE_MARGIN || Math.abs(y) > TABLE.halfY - TABLE_MARGIN) return "off the table";
+    if (inBasket(x, y, BASKET_MARGIN + CUBE_SIZE / 2)) return "the basket is in the way";
+    if (hull.some(([u, v]) => u < IMAGE_MARGIN || u > 1 - IMAGE_MARGIN || v < IMAGE_MARGIN || v > 1 - IMAGE_MARGIN)) return "outside the camera's view";
+    const near = others.find((o) => Math.hypot(o.table.x - x, o.table.y - y) < PLACE_FREE);
+    if (near) return `too close to ${near.id}`;
+    return null;
+  }
+
+  // Every candidate spot with its verdict, plus the basket. others: the cubes the camera saw
+  // on the table (not the one being carried).
+  function placeSpots(others, drop) {
+    const spots = [];
+    let seed = null;
+    for (const r of PLACE_GRID.radii) {
+      for (let yaw = PLACE_GRID.yawMin; yaw <= PLACE_GRID.yawMax; yaw += PLACE_GRID.yawStep) {
+        const a = THREE.MathUtils.degToRad(yaw);
+        const x = r * Math.cos(a);
+        const y = r * Math.sin(a);
+        const hull = cubeOutline(x, y);
+        let reason = spotProblem(x, y, hull, others);
+        let moves = null;
+        if (!reason) {
+          const reach = placeMoves(x, y, seed);
+          if (reach) {
+            moves = reach.moves;
+            seed = reach.seed;
+          } else reason = "out of the arm's reach";
+        }
+        spots.push({ id: `spot_${spots.length}`, kind: "table", x, y, yaw, hull, ok: !reason, reason, moves });
+      }
+    }
+    spots.push({ id: "basket", kind: "basket", x: drop.x, y: drop.y, hull: basketInImage().map(([u, v]) => [u / WIDTH, v / HEIGHT]), ok: true, reason: null });
+    return spots;
+  }
+
+  // A few table spots spread across the view, for choosing with glances (one glance = one spot).
+  function suggestSpots(spots) {
+    const ok = spots.filter((s) => s.ok && s.kind === "table").sort((a, b) => a.yaw - b.yaw || a.x - b.x);
+    if (ok.length <= SUGGESTED_SPOTS) return ok.map((s) => s.id);
+    const picked = new Set();
+    for (let k = 0; k < SUGGESTED_SPOTS; k += 1) picked.add(ok[Math.round((k * (ok.length - 1)) / (SUGGESTED_SPOTS - 1))].id);
+    return [...picked];
+  }
+
+  // What the camera tab needs to draw a spot (no joint angles).
+  function spotForCamera({ id, kind, hull, ok, reason }) {
+    const us = hull.map((p) => p[0]);
+    const vs = hull.map((p) => p[1]);
+    const center = [us.reduce((a, b) => a + b, 0) / us.length, vs.reduce((a, b) => a + b, 0) / vs.length];
+    return { id, kind, hull, ok, reason, center, box: [Math.min(...us), Math.min(...vs), Math.max(...us), Math.max(...vs)] };
   }
 
   // Joint angles for each stop, or null if the arm can't reach one of them.
@@ -112,7 +226,9 @@ export function createPickAndPlace({
 
   // choose picks the cube (eyes + clench): it gets { onTable, reachable } and resolves to
   // { target (or null: don't pick), line }.
-  async function pickCube(choose) {
+  // choosePlace (optional) picks where to put it: it gets { spots, suggested } once the cube is
+  // held, and resolves to { spot (or null: the basket), line }. Without it: the basket.
+  async function pickCube(choose, { choosePlace = null } = {}) {
     setStatus("Parking the arm");
     await park();
     setStatus("Waiting for the cubes to settle");
@@ -164,7 +280,30 @@ export function createPickAndPlace({
     await moveArm(choice.moves.grasp);
     const { cube: held, percent: gripped } = await closeClaw();
     await moveArm(choice.moves.lift);
-    if (held) {
+    let spot = null; // where the person chose to put it (null: the basket)
+    if (held && choosePlace) {
+      const heldName = held.name.replace("cube_", "");
+      setStatus(`${prefix}Holding ${heldName}: working out where it can go`);
+      await park(); // holding it, out of the camera's way
+      await nextFrame();
+      const others = onTable.filter((t) => t !== choice);
+      const spots = placeSpots(others, drop);
+      const suggested = suggestSpots(spots);
+      const okCount = spots.filter((s) => s.ok && s.kind === "table").length;
+      publishTargets([], null, { place: { spots: spots.map(spotForCamera), suggested: [...suggested, "basket"] } });
+      setStatus(`${prefix}Holding ${heldName}: look where to put it (${okCount} spots on the table, or the basket)`);
+      const placement = await choosePlace({ spots, suggested });
+      spot = placement?.spot?.kind === "table" ? placement.spot : null;
+      publishTargets([], null);
+    }
+    if (held && spot) {
+      await moveArm(spot.moves.above);
+      await moveArm(spot.moves.lower);
+      await moveArm(null, Math.max(0, gripped - RELEASE_OPENING)); // let go just above the table
+      physics.release(held);
+      await waitForRest(1500);
+      await moveArm(spot.moves.above); // straight up before swinging away
+    } else if (held) {
       await moveArm(choice.moves.release);
       // Open just enough to let go (wide open, the fingers would sweep the basket),
       // and before letting the cube drop, so the fingers are clear of it.
@@ -178,16 +317,26 @@ export function createPickAndPlace({
     await park();
     publishTargets([], null);
 
-    const landed = held && inBasket(held.position.x, held.position.y) && held.position.z < TABLE_Z + BASKET.height + CUBE_SIZE;
     const errorMm = Math.round(truth.distance * 1000);
     const name = (held ?? truth.cube).name.replace("cube_", "");
     const accuracy = errorMm < 1 ? "under 1 mm" : `${errorMm} mm`;
-    const result = { ok: Boolean(landed), target: truth.cube.name, held: held?.name ?? null, landed: Boolean(landed), errorMm, seen: targets.length, decision };
-    setStatus(prefix + (landed
-      ? `Put ${name} in the basket (camera located it to ${accuracy})`
-      : held
-        ? `Dropped ${name} outside the basket`
-        : `Missed ${name}: the claw closed without gripping it (located ${accuracy} off)`));
+    let landed;
+    let line;
+    if (held && spot) {
+      const offMm = Math.round(Math.hypot(held.position.x - spot.x, held.position.y - spot.y) * 1000);
+      landed = offMm <= PLACE_TOLERANCE * 1000 && held.position.z < TABLE_Z + CUBE_SIZE;
+      line = landed ? `Put ${name} where you chose (${offMm} mm from the spot)` : `Put ${name} down ${offMm} mm from where you chose`;
+    } else {
+      landed = held && inBasket(held.position.x, held.position.y) && held.position.z < TABLE_Z + BASKET.height + CUBE_SIZE;
+      line = landed
+        ? `Put ${name} in the basket (camera located it to ${accuracy})`
+        : held
+          ? `Dropped ${name} outside the basket`
+          : `Missed ${name}: the claw closed without gripping it (located ${accuracy} off)`;
+    }
+    const result = { ok: Boolean(landed), target: truth.cube.name, held: held?.name ?? null, landed: Boolean(landed),
+      placedAt: held ? (spot ? "table" : "basket") : null, errorMm, seen: targets.length, decision };
+    setStatus(prefix + line);
     return result;
   }
 
