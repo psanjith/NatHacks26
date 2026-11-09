@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reach Camera</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="ttt/camera.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body class="camera-page ttt-camera">
+  <div id="viewport"></div>
+  <header class="cam-hud" aria-label="Score">
+    <span class="x">X</span> You <b id="score-you">0</b>
+    <span class="sep">·</span> <b id="score-draw">0</b> draws <span class="sep">·</span>
+    <b id="score-him">0</b> Mr. Pemberton <span class="o">O</span>
+    <span id="turn" class="turn">Waiting for the sim tab</span>
+  </header>
+  <p id="prompt" class="gaze-prompt" role="status" hidden></p>
+  <div id="bubble" class="cam-bubble" hidden></div>
+  <p id="toast" class="cam-toast" role="status" hidden></p>
+  <p id="status" class="camera-status" hidden></p>
+
+  <section class="dock" aria-label="Headset and eye tracker">
+    <canvas id="waves" class="waves" aria-label="Live EEG, four channels"></canvas>
+    <div class="dock-side">
+      <div id="webcam" class="webcam" hidden></div>
+      <label class="person">Person <input id="person" type="text" spellcheck="false" autocomplete="off"></label>
+      <p id="eyes-status" class="eyes-line">Eyes: starting…</p>
+      <p id="learn-status" class="eyes-line"></p>
+      <div class="jaw-meter" aria-hidden="true"><div id="jaw-fill"></div><div id="jaw-mark" hidden></div></div>
+      <p id="jaw-status" class="eyes-line">OK signal: looking for the headset…</p>
+      <div class="buttons">
+        <button id="recalibrate" type="button">New eye profile</button>
+        <button id="ok-check" type="button">Check the OK signal</button>
+      </div>
+      <p class="hint">Look at one of your X's, send OK; then look at a square, send OK. OK again or Esc cancels. Space = OK · R = re-centre the eyes · D = gaze dot</p>
+    </div>
+  </section>
+  <div id="gaze-dot" class="gaze-dot" data-on="1" hidden></div>
+  <canvas id="gaze-layer" class="gaze-layer" hidden></canvas>
+  <div id="loading" role="status"><span id="loading-text">Loading</span></div>
+  <script type="module" src="ttt/camera-view.js"></script>
+</body>
+</html>

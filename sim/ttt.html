@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reach Tic-Tac-Toe</title>
+  <link rel="stylesheet" href="ttt/ttt.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <div id="viewport"></div>
+
+  <header class="hud" aria-label="Score">
+    <div class="side you"><span class="mark">X</span><span class="who">You</span><b id="score-you">0</b></div>
+    <div class="middle"><span id="turn">Setting up</span><small><b id="score-draw">0</b> draws</small></div>
+    <div class="side him"><b id="score-him">0</b><span class="who">Mr. Pemberton</span><span class="mark">O</span></div>
+  </header>
+  <p id="prompt" class="prompt" role="status" hidden></p>
+  <div id="bubble" class="bubble" hidden></div>
+  <p id="toast" class="toast" role="status" hidden></p>
+
+  <aside class="panel" aria-label="Controls">
+    <h1>Reach · Tic-Tac-Toe</h1>
+    <div class="buttons">
+      <button id="new-game" type="button" class="wide primary">New game</button>
+      <button id="open-camera" type="button" class="wide">Open the camera tab (you play there)</button>
+      <button id="view-player" type="button">Player view</button>
+      <button id="view-board" type="button">Board close-up</button>
+      <button id="view-wide" type="button" class="wide">Wide view</button>
+    </div>
+    <p id="camera-line" class="status-line">Camera tab: not open</p>
+    <label class="slider">
+      <span>His mistake chance</span><output id="mistake-out">55%</output>
+      <input id="mistake" type="range" min="0" max="100" step="5" value="55">
+    </label>
+    <p id="task-status" class="status-line"></p>
+    <p class="hint">You choose in the camera tab: look at one of your X's and send OK (headset, or Space there), then look at a square and send OK. The arm does the rest. This tab runs the arm, the physics and Mr. Pemberton. C hides the camera inset.</p>
+  </aside>
+
+  <div id="camera-view"><span>Table camera</span></div>
+  <div id="loading" role="status"><span id="loading-text">Loading arm</span></div>
+  <script type="module" src="ttt/main.js"></script>
+</body>
+</html>

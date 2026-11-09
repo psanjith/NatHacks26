@@ -14,12 +14,19 @@ FIRST_PORT = 8000
 MAX_PROFILE = 2_000_000                  # bytes
 
 
+PER_PERSON = {
+    "/profiles/": "gaze_profile.json",           # the eye tracker's saved face model and gaze mapping
+    "/gazelearn/": "ttt_gaze_learning.json",     # tic-tac-toe camera tab: what it learned from confirmed choices
+}
+
+
 def profile_path(url):
-    """/profiles/<name>.json -> logs/users/<name>/gaze_profile.json (the eye tracker's saved face model)."""
-    if not (url.startswith("/profiles/") and url.endswith(".json")):
-        return None
-    name = "".join(c for c in url[10:-5].lower() if c.isalnum() or c in "-_")
-    return USERS / name / "gaze_profile.json" if name else None
+    """/profiles/<name>.json -> logs/users/<name>/gaze_profile.json, /gazelearn/<name>.json -> .../ttt_gaze_learning.json."""
+    for prefix, filename in PER_PERSON.items():
+        if url.startswith(prefix) and url.endswith(".json"):
+            name = "".join(c for c in url[len(prefix):-5].lower() if c.isalnum() or c in "-_")
+            return USERS / name / filename if name else None
+    return None
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
