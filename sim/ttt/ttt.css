@@ -168,7 +168,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outl
   left: 16px;
   bottom: 16px;
   width: min(300px, calc(100vw - 32px));
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   border: 1px solid var(--line);
   border-radius: 8px;
   pointer-events: none;

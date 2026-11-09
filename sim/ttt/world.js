@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import {
-  BOARD_MARKERS, BOARD_MARKER_DIAMETER, CAMERA, GRID, GRID_SIZE, BOARD_TOP, MARKERS, MARKER_DIAMETER, MOUNT_SIZE, O_TRAY, TABLE, TABLE_Z, X_PIECE, X_SUPPLY,
-  cellCenter, supplyPose,
+  BOARD_MARKERS, BOARD_MARKER_DIAMETER, CAMERA, CAMERA_VFOV, GRID, GRID_SIZE, BOARD_TOP, MARKERS, MARKER_DIAMETER, MOUNT_SIZE, O_TRAY, TABLE, TABLE_Z, X_PIECE,
+  cellCenter,
 } from "./layout.js";
 
 // The arena: a dim room, a dark table with a battle mat, the glowing game board, the X supply pad,
@@ -270,20 +270,6 @@ function buildHighlights() {
 }
 
 // Outlines on the table where the X pieces wait.
-function buildSupplyPad() {
-  const group = new THREE.Group();
-  group.name = "x_supply_pad";
-  const ring = new THREE.RingGeometry(0.021, 0.0235, 48);
-  const material = new THREE.MeshBasicMaterial({ color: "#ff5a3c", transparent: true, opacity: 0.55, depthWrite: false });
-  for (const slot of X_SUPPLY) {
-    const { x, y } = supplyPose(slot);
-    const m = new THREE.Mesh(ring, material);
-    m.position.set(x, y, TABLE_Z + 0.0006);
-    group.add(m);
-  }
-  return group;
-}
-
 function buildOTray() {
   const group = new THREE.Group();
   group.name = "o_tray";
@@ -377,7 +363,7 @@ function strut(from, to, radius, material) {
 }
 
 export function buildTableCamera() {
-  const camera = new THREE.PerspectiveCamera(CAMERA.fov, CAMERA.aspect, 0.05, 6);
+  const camera = new THREE.PerspectiveCamera(CAMERA_VFOV, CAMERA.width / CAMERA.height, 0.05, 6);
   camera.name = "table_camera";
   camera.position.set(CAMERA.lens.x, CAMERA.lens.y, CAMERA.lens.z);
   camera.up.set(0, 0, 1);
@@ -386,15 +372,15 @@ export function buildTableCamera() {
   return camera;
 }
 
-// A clamp-on pole at the table's back-right corner (behind the arm) with a boom out to the camera.
+// A pole clamped to the table's right-hand edge beside the camera, with a short boom out to it.
 function buildCameraRig(camera) {
   const rig = new THREE.Group();
   rig.name = "camera_rig";
   const metal = new THREE.MeshStandardMaterial({ color: "#23262b", metalness: 0.5, roughness: 0.45 });
   const glass = new THREE.MeshStandardMaterial({ color: "#0c0e12", metalness: 0.2, roughness: 0.15 });
   const { x, y, z } = CAMERA.lens;
-  const poleX = TABLE.minX + 0.06;
-  const poleY = -TABLE.halfY + 0.03;
+  const poleX = Math.max(TABLE.minX + 0.04, Math.min(TABLE.maxX - 0.04, x));
+  const poleY = -TABLE.halfY + 0.025;
   const boomZ = z + 0.07;
   rig.add(strut([poleX, poleY, TABLE_Z], [poleX, poleY, boomZ + 0.02], 0.012, metal));
   const clamp = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.03), metal);
@@ -442,7 +428,7 @@ export function buildWorld() {
   group.name = "world";
   const highlights = buildHighlights();
   const tray = buildOTray();
-  group.add(buildRoom(), buildTable(), buildMat(), buildBoard(), buildSupplyPad(), tray.group, buildNameplate(),
+  group.add(buildRoom(), buildTable(), buildMat(), buildBoard(), tray.group, buildNameplate(),
     buildLights(), buildMarkers(), buildMug(), highlights.group);
   const tableCamera = buildTableCamera();
   group.add(buildCameraRig(tableCamera));

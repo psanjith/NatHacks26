@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "../vendor/OrbitControls.js";
-import { BOARD_TOP, GRID, O_PIECE, cellCenter } from "./layout.js";
-import { resetPieces } from "./pieces.js";
+import { BOARD_TOP, GRID, O_PIECE, TABLE_Z, cellCenter, onBoard } from "./layout.js";
+import { resetPieces, scatterXs } from "./pieces.js";
 import { createPhysics } from "./physics.js";
 import { createReach } from "./reach.js";
 import { createRobot } from "./robot.js";
@@ -21,12 +21,10 @@ const PARK = [90, -60, 125, 0]; // swung to its left and tucked down: clear of t
 const HOLD = [90, -10, -20, 0]; // high on its left, holding your X while you choose a square
 const CALIBRATION_POSE = HOLD; // high: every mount sticker in the table camera's view
 const ARM_SPEED = 80; // degrees per second
-const STATE_EVERY_MS = 33; // how often the camera tab gets the scene's state
-const VIEWS = {
-  player: { position: [-0.3, -0.32, 0.64], target: [0.34, 0.02, 0.15] },
-  board: { position: [0.0, 0.0, 0.5], target: [0.25, 0, 0.0] },
-  wide: { position: [0.22, -1.1, 0.55], target: [0.3, 0, 0.1] },
-};
+const STATE_EVERY_MS = 12; // how often the camera tab gets the scene's state (every tick, at 60 a second)
+// This tab's own view is the sim's: a free camera for watching. The person's views (player view, board
+// view) are in the camera tab, and come from the table camera only.
+const VIEWS = { wide: { position: [0.22, -1.1, 0.55], target: [0.3, 0, 0.1] } };
 const params = new URLSearchParams(location.search);
 
 const $ = (id) => document.getElementById(id);
@@ -45,8 +43,12 @@ const renderer = createRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 $("viewport").append(renderer.domElement);
 
-// In a background tab (the camera tab in front, say) the browser pauses animation frames and slows
-// timers to once a second, so a small worker supplies ~60 ticks a second instead (as in the cube sim).
+// In a background tab (the camera tab in front, say) the browser pauses animation frames. Chrome also
+// lets a hidden tab's worker timer through only about 12 times a second (measured), which made the
+// arm and Mr. Pemberton move in jerky steps in the camera tab. Messages from the visible camera tab
+// still arrive at its full frame rate, so the camera tab sends a "tick" every frame and that drives
+// this tab while it's hidden. The worker is the fallback when no camera tab is open.
+let lastPulse = -1e9;
 const ticker = new Worker(URL.createObjectURL(new Blob(["setInterval(() => postMessage(0), 16);"], { type: "text/javascript" })));
 const tickWaiters = [];
 const nextFrame = () => new Promise((resolve) => (document.hidden ? tickWaiters.push(resolve) : requestAnimationFrame(resolve)));
@@ -64,7 +66,7 @@ function setView(name) {
   controls.target.fromArray(VIEWS[name].target);
   controls.update();
 }
-setView("player");
+setView("wide");
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -79,6 +81,12 @@ let vision = null;
 
 // ---------------------------------------------------------------- the camera tab
 const channel = new BroadcastChannel(CHANNEL);
+// Only one sim tab drives the camera tab: every message carries this tab's id, the camera tab follows the
+// newest sim, and a sim tab that sees a newer one open stops (two sims on one channel fought over the
+// camera tab: the arm and pieces jumped between them).
+const SIM = { id: Math.random().toString(36).slice(2), started: Date.now() };
+let superseded = false;
+const send = (message) => !superseded && channel.postMessage({ ...message, sim: SIM.id });
 const cameraTab = { seen: -1e9, ready: false, eyes: false, headset: false, ok: false };
 const cameraOpen = () => performance.now() - cameraTab.seen < 5000;
 function showCameraLine() {
@@ -94,7 +102,7 @@ let asking = null;
 let askToken = 0;
 function sendAsk() {
   const payload = asking?.payload ?? {};
-  channel.postMessage({ type: "ask", kind: asking?.kind ?? null, token: asking?.token ?? 0, targets: payload.targets, cells: payload.cells });
+  send({ type: "ask", kind: asking?.kind ?? null, token: asking?.token ?? 0, targets: payload.targets, cells: payload.cells });
 }
 function ask(kind, payload = {}) {
   return new Promise((resolve) => {
@@ -113,9 +121,15 @@ function cancelAsk() {
 
 const gameMessage = () => ({ type: "game", board: game.board, scores: game.scores, turn: hud.turn.textContent, who: game.who });
 channel.onmessage = ({ data }) => {
-  if (data.type === "request-state" && world) {
-    channel.postMessage({ type: "state", ...snapshot(world) });
-    channel.postMessage(gameMessage());
+  if (data.to && data.to !== SIM.id) return; // a camera tab talking to another sim tab
+  if (data.type === "sim-hello") {
+    if (data.sim !== SIM.id && data.started > SIM.started) stepAside();
+  } else if (data.type === "tick") {
+    lastPulse = performance.now();
+    hiddenTick();
+  } else if (data.type === "request-state" && world) {
+    send({ type: "state", ...snapshot(world) });
+    send(gameMessage());
     sendAsk();
   } else if (data.type === "choose" && asking && data.token === asking.token) {
     const pending = asking;
@@ -131,6 +145,15 @@ channel.onmessage = ({ data }) => {
     if (data.ready && world && !game.started && params.get("autostart") !== "0") startGame();
   }
 };
+
+function stepAside() {
+  if (superseded) return;
+  game.token += 1; // stops this tab's game
+  cancelAsk();
+  superseded = true;
+  loading.hidden = false;
+  loadingText.textContent = "A newer sim tab is open, so this one has stopped. You can close it.";
+}
 
 // What the person is looking at in the camera tab, shown here too: the X lights up, or the square glows.
 // He looks at it as well.
@@ -167,13 +190,13 @@ function setTurn(who, text) {
   hud.you.classList.toggle("active", who === "you" || who === "arm");
   hud.him.classList.toggle("active", who === "him");
   hud.turn.textContent = text;
-  channel.postMessage(gameMessage());
+  send(gameMessage());
 }
 let line = null;
 function say(text, ms) {
   line = { text, until: performance.now() + ms };
   bubble.textContent = text;
-  channel.postMessage({ type: "line", text, ms });
+  send({ type: "line", text, ms });
 }
 let toastTimer = null;
 function toast(text, ms = 5000) {
@@ -181,7 +204,7 @@ function toast(text, ms = 5000) {
   toastLine.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (toastLine.hidden = true), ms);
-  channel.postMessage({ type: "toast", text, ms });
+  send({ type: "toast", text, ms });
 }
 const projected = new THREE.Vector3();
 function placeBubble(now) {
@@ -324,6 +347,7 @@ async function yourMove(token) {
     }
     const targets = options.map((o, i) => ({ id: `x${i}`, center: o.piece.pixel, box: o.piece.box, mask: o.piece.mask }));
     const choice = await ask("pick", { targets, options });
+    if (choice === "rescan") continue; // the X's were moved (scattered): look again
     if (choice === null || token !== game.token) return null;
     const option = options[Number(String(choice).slice(1))];
     game.moving = true;
@@ -384,6 +408,58 @@ async function hisMove(token) {
   return move.cell;
 }
 
+// Scatter: throws the spare X's (not on the board, not in the claw) anywhere the arm can reach, at any
+// angle. If you're choosing an X at the time, the camera looks again and offers them where they landed.
+// A spot and angle are fine for a scattered X if:
+//   - all of a 4 cm square around it is in the camera's frame, clear of its edges and of the prompt at
+//     the top of the camera tab (the top 14%);
+//   - the arm can plan a pick there, with the fingers closing near the X's diagonal (28° or more from a
+//     bar). The fingers' closing line only turns about 15°, and an X gripped along a bar lands up to
+//     28° off square (scatter tests), so angles the arm can't grip well aren't used.
+const corner = new THREE.Vector3();
+const ALL_CELLS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+function scatterSpotOk(x, y, yaw) {
+  if (!inCameraFrame(x, y)) return false;
+  const plan = robot.planPick({ x, y, yaw, surface: TABLE_Z }, ALL_CELLS);
+  return Boolean(plan) && Math.abs(plan.graspAngleDeg) >= 28;
+}
+function inCameraFrame(x, y) {
+  return [[1, 1], [1, -1], [-1, 1], [-1, -1]].every(([a, b]) => {
+    corner.set(x + 0.02 * a, y + 0.02 * b, TABLE_Z).project(world.tableCamera);
+    const u = (corner.x + 1) / 2;
+    const v = (1 - corner.y) / 2;
+    return corner.z < 1 && u > 0.04 && u < 0.96 && v > 0.14 && v < 0.96;
+  });
+}
+// Where new games put each X: its starting slot, or where it was last scattered.
+let xHome = null;
+
+async function scatter() {
+  if (game.moving || !physics) {
+    toast("Wait for the arm and Mr. Pemberton to finish moving", 2500);
+    return;
+  }
+  const held = game.held?.piece;
+  const spare = world.pieceSet.xs.filter((m) => m !== held && !onBoard(m.position.x, m.position.y));
+  const others = [...world.pieceSet.xs, ...world.pieceSet.os].filter((m) => !spare.includes(m)).map((m) => m.position);
+  if (!scatterXs(spare, others, { allowed: scatterSpotOk })) {
+    toast("Couldn't find room for them all: try again", 2500);
+    return;
+  }
+  spare.forEach((m) => physics.place(m));
+  // New games put the X's back here, not in their starting row.
+  xHome = world.pieceSet.xs.map((m) => (spare.includes(m) ? { p: m.position.clone(), q: m.quaternion.clone() } : xHome?.[world.pieceSet.xs.indexOf(m)] ?? null));
+  await waitForRest(1500);
+  toast(`Scattered ${spare.length} X${spare.length === 1 ? "" : "'s"}`, 2000);
+  if (asking?.kind === "pick") {
+    const pending = asking;
+    asking = null;
+    sendAsk();
+    clearFocus();
+    pending.resolve("rescan");
+  }
+}
+
 async function startGame() {
   if (game.moving) {
     game.pendingNew = true;
@@ -403,6 +479,15 @@ async function startGame() {
   game.board = Array(9).fill(null);
   nextO = 0;
   resetPieces(world.pieceSet);
+  if (xHome) {
+    // Scattered before: each X back where it was scattered; any that weren't (on the board then) get
+    // new spots among them.
+    world.pieceSet.xs.forEach((m, i) => xHome[i] && (m.position.copy(xHome[i].p), m.quaternion.copy(xHome[i].q)));
+    const homeless = world.pieceSet.xs.filter((_, i) => !xHome[i]);
+    if (homeless.length && scatterXs(homeless, world.pieceSet.xs.filter((m) => !homeless.includes(m)).map((m) => m.position), { allowed: scatterSpotOk })) {
+      xHome = world.pieceSet.xs.map((m) => ({ p: m.position.clone(), q: m.quaternion.clone() }));
+    }
+  }
   [...world.pieceSet.xs, ...world.pieceSet.os].forEach((mesh) => physics.place(mesh));
   promptLine.hidden = true;
   await waitForRest(1500);
@@ -421,7 +506,7 @@ async function startGame() {
     if (cell === null || token !== game.token) return;
     game.board[cell] = turn;
     world.highlights.set(cell, null);
-    channel.postMessage(gameMessage());
+    send(gameMessage());
     checkBoard();
     if (game.pendingNew) {
       game.pendingNew = false;
@@ -448,13 +533,16 @@ function tick() {
   world.highlights.pulse(now / 1000);
   if (now - lastState > STATE_EVERY_MS) {
     lastState = now;
-    channel.postMessage({ type: "state", ...snapshot(world) });
+    send({ type: "state", ...snapshot(world) });
   }
   return now;
 }
-ticker.onmessage = () => {
+function hiddenTick() {
   if (physics && document.hidden) tick();
   tickWaiters.splice(0).forEach((resolve) => resolve());
+}
+ticker.onmessage = () => {
+  if (performance.now() - lastPulse > 100) hiddenTick();
 };
 function frame() {
   if (!physics) return;
@@ -480,9 +568,11 @@ $("new-game").addEventListener("click", (event) => {
   startGame();
 });
 $("open-camera").addEventListener("click", openCameraTab);
-$("view-player").addEventListener("click", () => setView("player"));
-$("view-board").addEventListener("click", () => setView("board"));
 $("view-wide").addEventListener("click", () => setView("wide"));
+$("scatter").addEventListener("click", (event) => {
+  event.currentTarget.blur();
+  scatter();
+});
 window.addEventListener("keydown", (event) => {
   if (event.key === "c" || event.key === "C") cameraView.hidden = !cameraView.hidden;
 });
@@ -506,7 +596,7 @@ async function start() {
     },
     setStatus: (text) => (taskStatus.textContent = text),
   });
-  window.ttt = { renderer, scene, camera, controls, world, physics, reach, robot, vision, game, moveArm, park, startGame, waitForRest, pose, setView, channel, get asking() { return asking; } };
+  window.ttt = { scatter, renderer, scene, camera, controls, world, physics, reach, robot, vision, game, moveArm, park, startGame, waitForRest, pose, setView, channel, get asking() { return asking; } };
   renderer.setAnimationLoop(frame);
   loading.hidden = true;
   setTurn("setup", "Setting up");
@@ -517,7 +607,8 @@ async function start() {
     ? `Table camera calibrated from ${calibration.points ?? 4} stickers (${(calibration.rmsPx ?? 0).toFixed(2)} px)`
     : `Camera calibration failed: ${calibration.reason}`;
   await park();
-  channel.postMessage({ type: "camera-ping" });
+  send({ type: "sim-hello", started: SIM.started });
+  send({ type: "camera-ping" });
   showCameraLine();
   // The game starts once the camera tab says it's set up (or straight away with ?autostart=1).
   if (params.get("autostart") === "1" || (cameraOpen() && cameraTab.ready)) startGame();

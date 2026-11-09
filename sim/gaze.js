@@ -13,8 +13,9 @@ import { solveLinear } from "./linalg.js";
 //     of head movement per dot (turn, slide sideways, nod, slide up/down, lean in/out), so it learns
 //     what each does. (In a simulated head, mixing them in one movement left the tracker unable to
 //     tell a turn from a sideways lean: 88-181 px off; separated: 11-22 px.)
-// The profile is calibrated once (about 45 s) and saved; later sessions load it and only re-align
-// on one dot. Positions are kept in screen pixels, so moving the window doesn't break it.
+// The profile is calibrated once (about 45 s) and saved; later sessions load it and line it up again on
+// five quick dots. Positions are kept in screen pixels, so moving the window doesn't break it.
+// The shown point is the average of the current fixation's frames (see createFixationFilter).
 // "Away": no face, the head turned well outside what calibration saw, or the gaze off the window.
 // "Talking": the jaw has been opening in the last moment (from MediaPipe's jaw score).
 //
@@ -37,8 +38,25 @@ const HEAD_TURN = [8, 9]; // head turn and nod: turned well past what calibratio
 const MAX_Z = 3; // inputs further out than this many spreads are clamped
 const AWAY_Z = 4; // head turned this many spreads past what calibration saw = looking away
 const AWAY_MARGIN = 0.12; // gaze this far outside the window (share of its size) = looking away
-const SMOOTH = 0.3; // share of each new estimate in the shown point
-const MEDIAN_OF = 5; // frames: one bad frame can't fling the point
+// The shown point: the average of the frames since the eyes last moved (up to FIX_FRAMES of them).
+// The eyes have moved when two frames in a row land, close together, further than FIX_K times the usual
+// scatter from that average (FIX_MIN_PX..FIX_MAX_PX), or when the last FIX_RECENT frames have drifted
+// FIX_SHIFT of that radius away from the rest (a look at a neighbouring target, closer than the radius).
+// On simulated people with realistic noise (scratch tests, not real eyes), together with the five-dot
+// line-up below, this hit 115 px targets 45-69% of the time after 0.33 s instead of 33-49%, halved the
+// shown point's jitter, and still followed a look to a neighbouring target in about 0.2 s.
+const FIX_K = 2.6;
+const FIX_MIN_PX = 45;
+const FIX_MAX_PX = 150;
+const FIX_FRAMES = 20;
+const FIX_RECENT = 4;
+const FIX_SHIFT = 0.6;
+// Lining a saved profile up again: one dot isn't enough, because nobody looks exactly at a dot (about
+// half a degree to a degree off, which is 25-50 px on a laptop) and that miss would shift every later
+// estimate. Five dots average it down.
+const LINE_UP = [[0.5, 0.5], [0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75]];
+const LINE_UP_MS = 1400;
+const LINE_UP_SETTLE_MS = 500;
 const TALK_JAW = 0.12; // MediaPipe jawOpen above this in the last TALK_MS = talking
 const TALK_MS = 800;
 const PROFILE_VERSION = 1;
@@ -152,6 +170,54 @@ export function fitGaze(samples) {
   const wx = solveLinear(A, bx);
   const wy = solveLinear(A, by);
   return wx && wy ? { mean, std, wx, wy, offset: [0, 0] } : null;
+}
+
+// ---------------------------------------------------------------- the shown point
+export function createFixationFilter() {
+  let fix = []; // this fixation's frames
+  let pending = []; // frames that landed outside it
+  let spread = 40; // typical distance of a frame from its fixation's average (px), learned as it goes
+  const mean = (a) => ({ x: a.reduce((s, p) => s + p.x, 0) / a.length, y: a.reduce((s, p) => s + p.y, 0) / a.length });
+  return {
+    push(raw) {
+      if (!fix.length) {
+        fix = [raw];
+        return raw;
+      }
+      const radius = Math.max(FIX_MIN_PX, Math.min(FIX_MAX_PX, FIX_K * spread));
+      const c = mean(fix);
+      const d = Math.hypot(raw.x - c.x, raw.y - c.y);
+      if (d > radius) {
+        pending.push(raw);
+        if (pending.length >= 2) {
+          const [a, b] = pending.slice(-2);
+          if (Math.hypot(a.x - b.x, a.y - b.y) < radius) {
+            fix = pending.slice(-2);
+            pending = [];
+          } else pending = pending.slice(-1);
+        }
+      } else {
+        pending = [];
+        fix.push(raw);
+        if (fix.length > FIX_FRAMES) fix.shift();
+        spread += 0.05 * (d - spread);
+        if (fix.length >= 2 * FIX_RECENT) {
+          const newer = mean(fix.slice(-FIX_RECENT));
+          const older = mean(fix.slice(0, -FIX_RECENT));
+          if (Math.hypot(newer.x - older.x, newer.y - older.y) > FIX_SHIFT * radius) fix = fix.slice(-FIX_RECENT);
+        }
+      }
+      return mean(fix);
+    },
+    reset() {
+      fix = [];
+      pending = [];
+    },
+    setSpread(px) {
+      if (Number.isFinite(px) && px > 0) spread = px;
+    },
+    get spread() { return spread; },
+  };
 }
 
 // ---------------------------------------------------------------- cleaning up calibration frames
@@ -290,6 +356,7 @@ export function createGazeTracker({ goodErrorPx = GOOD_ERROR_PX } = {}) {
   let away = true;
   let lastJawOpen = -1e9; // when the jaw was last open (talking)
   const recent = []; // raw estimates of the last 3 s: { t, x, y } (screen pixels)
+  const fixation = createFixationFilter();
   let lastVideoTime = -1;
   // Tracking quality, for switching to the headset's eye glances when the webcam can't keep up.
   // brightness: mean brightness (0-255) of a tiny copy of the webcam image, a few times a second.
@@ -370,6 +437,7 @@ export function createGazeTracker({ goodErrorPx = GOOD_ERROR_PX } = {}) {
       feat = null;
       rigid = null;
       screenPoint = null;
+      fixation.reset();
       away = true;
       return;
     }
@@ -393,10 +461,7 @@ export function createGazeTracker({ goodErrorPx = GOOD_ERROR_PX } = {}) {
       const raw = predictGaze(model, feat);
       recent.push({ t: now, ...raw });
       while (recent.length && recent[0].t < now - 3000) recent.shift();
-      const last = recent.slice(-MEDIAN_OF);
-      const med = (k) => last.map((r) => r[k]).sort((a, b) => a - b)[Math.floor(last.length / 2)];
-      const steady = { x: med("x"), y: med("y") };
-      screenPoint = screenPoint ? { x: screenPoint.x + SMOOTH * (steady.x - screenPoint.x), y: screenPoint.y + SMOOTH * (steady.y - screenPoint.y) } : steady;
+      screenPoint = fixation.push(raw);
     }
     const p = windowPoint();
     const offWindow = p && (p.x < -AWAY_MARGIN * innerWidth || p.x > (1 + AWAY_MARGIN) * innerWidth ||
@@ -520,6 +585,7 @@ export function createGazeTracker({ goodErrorPx = GOOD_ERROR_PX } = {}) {
     });
     model = result.fitted;
     screenPoint = null;
+    fixation.reset();
     const errorPx = Math.round(result.medianPx);
     profileMeta = { person, screen: { w: screen.width, h: screen.height }, camera: cameraSize(), errorPx, saved: new Date().toISOString() };
     refBrightness = brightness;
@@ -527,19 +593,29 @@ export function createGazeTracker({ goodErrorPx = GOOD_ERROR_PX } = {}) {
   }
 
   const averageFace = faceModel;
-  // One dot in the middle: shifts the whole mapping so it lines up again (a new session, a head move).
+  // Lines a saved profile up again (a new session, a head move): five dots, and the whole mapping shifts
+  // by the average miss. fitPx: how far the dots still are from the estimates once shifted (median), so
+  // a profile that no longer fits this person or room shows up.
   async function recenter(canvas, rect) {
     if (!model) throw new Error("calibrate first");
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-    const samples = await runDots(canvas, [{ x, y, ms: 1600, settle: 500, kind: "still", text: "Look at the dot" }]);
-    if (samples.length < 8) return { ok: false, reason: "no clear look at the dot" };
-    const p = samples.map((s) => predictGaze(model, s.f, false));
-    model.offset = [samples[0].x - p.reduce((a, q) => a + q.x, 0) / p.length, samples[0].y - p.reduce((a, q) => a + q.y, 0) / p.length];
+    const steps = LINE_UP.map(([fx, fy]) => ({ x: rect.left + fx * rect.width, y: rect.top + fy * rect.height, ms: LINE_UP_MS,
+      settle: LINE_UP_SETTLE_MS, kind: "still", text: "Lining up your eyes: look at each dot" }));
+    const samples = await runDots(canvas, steps);
+    const median = (values) => values.slice().sort((a, b) => a - b)[values.length >> 1];
+    const dots = steps.map((_, k) => cleanDot(samples.filter((s) => s.k === k))).filter((d) => d.length >= 8).map((d) => {
+      const p = d.map((s) => predictGaze(model, s.f, false));
+      const at = { x: median(p.map((q) => q.x)), y: median(p.map((q) => q.y)) };
+      return { miss: [d[0].x - at.x, d[0].y - at.y], p, at };
+    });
+    if (dots.length < 3) return { ok: false, reason: "no clear look at the dots" };
+    model.offset = [0, 1].map((i) => dots.reduce((a, dot) => a + dot.miss[i], 0) / dots.length);
+    const fitPx = Math.round(median(dots.map((dot) => Math.hypot(dot.miss[0] - model.offset[0], dot.miss[1] - model.offset[1]))));
     refBrightness = brightness; // this session's lighting
-    refJitter = medianJump(p); // how much the estimate jumps while the eyes are still on one dot
+    refJitter = median(dots.map((dot) => medianJump(dot.p))); // how much the estimate jumps while the eyes are still on a dot
+    fixation.setSpread(median(dots.flatMap((dot) => dot.p.map((q) => Math.hypot(q.x - dot.at.x, q.y - dot.at.y)))));
+    fixation.reset();
     screenPoint = null;
-    return { ok: true, shiftPx: Math.round(Math.hypot(...model.offset)) };
+    return { ok: true, shiftPx: Math.round(Math.hypot(...model.offset)), fitPx, dots: dots.length };
   }
 
   function meanSince(t0) {
@@ -586,6 +662,7 @@ export function createGazeTracker({ goodErrorPx = GOOD_ERROR_PX } = {}) {
     model = { ...p.model, offset: p.model.offset.slice() };
     profileMeta = { person: p.person, screen: p.screen, camera: madeAt, errorPx: p.errorPx, saved: p.saved };
     screenPoint = null;
+    fixation.reset();
     return { ok: true };
   }
 

@@ -1,27 +1,34 @@
 import * as THREE from "three";
-import { createBci } from "../bci.js";
+import { createBci, headsetProblem } from "../bci.js";
 import { createGazeTracker } from "../gaze.js";
 import { createWaves } from "../waves.js";
 import { createChooser } from "./chooser.js";
 import { createGazeLearning } from "./learn.js";
-import { BOARD_TOP, GRID, GRID_SIZE, cellCenter } from "./layout.js";
-import { CHANNEL, applySnapshot, buildScene, createRenderer } from "./scene.js";
+import { BOARD_TOP, CAMERA, GRID, GRID_SIZE, cellCenter } from "./layout.js";
+import { CHANNEL, buildScene, createMirror, createRenderer } from "./scene.js";
 
-// The camera tab: where the person plays. It shows the table camera's image (the same camera the arm
-// uses to find pieces), mirrors the sim tab live, and is the only place with eye tracking.
-//   Choosing an X: the view zooms in on your spare X pieces. Each is drawn with the camera's own mask of
-//     it (what the detector found); the one you look at lights up yellow, OK makes it green.
-//   Choosing a square: the view zooms in on the board; the square you look at lights up with a ghost X.
-//   Otherwise (the arm moving, his turn) the view zooms back out to the whole table.
-// Eyes: the webcam tracker (../gaze.js) with each person's saved 3D face model and gaze mapping (one dot
-// to line it up each session, a full calibration the first time), plus what this tab learns from the
-// choices they confirm (learn.js), saved per person. The OK: the headset (../bci.js) or the space bar.
+// The camera tab: where the person plays. Everything here comes from one camera, the table camera
+// (a 4K webcam, layout.js), the same one the arm uses to find pieces. Each frame is rendered once
+// at the camera's own resolution, and every view is a crop of that frame, scaled up like a digital
+// zoom on a real video feed: nothing is re-rendered sharper than the camera could see it. The view
+// follows the turn by itself:
+//   Your turn, choosing an X: a crop around your spare X pieces. Each is drawn with the camera's own mask
+//     of it (what the detector found); the one you look at lights up yellow, OK makes it green.
+//   Your turn, choosing a square: the board view, a crop around the board; the square you look at lights
+//     up with a ghost X.
+//   Otherwise (the arm moving, his turn): the player view, the whole frame.
+// The small view in the dock shows the whole frame while the big one is zoomed (with the crop marked),
+// and the board otherwise. It mirrors the sim tab live, and is the only place with eye tracking.
+// Eyes: the webcam tracker (../gaze.js) with each person's saved 3D face model and gaze mapping (five
+// dots to line it up each session, a full calibration the first time), plus what this tab learns from
+// the choices they confirm (learn.js), saved per person. The OK: the headset (../bci.js) or the space bar.
 
-const ASPECT = 4 / 3;
-const ZOOM_MARGIN = 0.06; // around what's being chosen, as a share of the image
-const MIN_ZOOM = 0.32; // never closer than this share of the image
+const ASPECT = CAMERA.width / CAMERA.height;
+const ZOOM_MARGIN = 0.05; // around what's being chosen, as a share of the image
+const MIN_ZOOM = 0.3; // never closer than this share of the frame
 const CELL_NAMES = ["top left", "top middle", "top right", "middle left", "the centre", "middle right", "bottom left", "bottom middle", "bottom right"];
 const COLOURS = { idle: [255, 255, 255], gaze: [255, 200, 40], confirm: [60, 220, 110] };
+const FULL = { x0: 0, y0: 0, s: 1 };
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -39,75 +46,88 @@ const dot = $("gaze-dot");
 const layer = $("gaze-layer");
 const bubble = $("bubble");
 const toastLine = $("toast");
+const caption = $("view-caption");
+const pip = $("pip");
+const pipLabel = $("pip-label");
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// ---------------------------------------------------------------- image + overlay
+// ---------------------------------------------------------------- the camera's frame, and views of it
+// The camera's sensor: a canvas the size of its frame, never shown as is.
+// Only the part of the frame on screen is drawn, at the camera's own pixel density (or the screen's, if
+// that's lower): the same picture as drawing the whole 4K frame and cropping it, for a fraction of the
+// work. The canvas below is the drawing surface for that, never shown as is.
 const renderer = createRenderer();
-$("viewport").append(renderer.domElement);
-const overlay = document.createElement("canvas");
-overlay.className = "overlay";
-$("viewport").append(overlay);
-const ctx = overlay.getContext("2d");
+renderer.setPixelRatio(1);
+renderer.shadowMap.autoUpdate = false; // shadows are worked out once a frame, not once per view drawn
+const sensor = renderer.domElement;
+// What's shown: a crop of that frame, scaled to fit, with the choosing highlights drawn on top.
+const screen = document.createElement("canvas");
+screen.className = "frame";
+$("viewport").append(screen);
+const ctx = screen.getContext("2d");
+const pipCtx = pip.getContext("2d");
 let ratio = 1;
 function fit() {
   const free = window.innerHeight - dock.getBoundingClientRect().height;
   const width = Math.floor(Math.min(window.innerWidth, free * ASPECT));
   const height = Math.floor(width / ASPECT);
-  renderer.setSize(width, height);
   ratio = Math.min(window.devicePixelRatio, 2);
-  overlay.width = Math.round(width * ratio);
-  overlay.height = Math.round(height * ratio);
-  overlay.style.width = `${width}px`;
-  overlay.style.height = `${height}px`;
+  screen.width = Math.round(width * ratio);
+  screen.height = Math.round(height * ratio);
+  screen.style.width = `${width}px`;
+  screen.style.height = `${height}px`;
+  const box = pip.getBoundingClientRect();
+  pip.width = Math.round(box.width * ratio);
+  pip.height = Math.round(box.height * ratio);
+  renderer.setSize(Math.max(screen.width, pip.width, 2), Math.max(screen.height, pip.height, 2), false);
+  // The caption sits on the picture's own corner.
+  const r = screen.getBoundingClientRect();
+  caption.style.left = `${Math.max(12, r.left + 10)}px`;
 }
 window.addEventListener("resize", fit);
 fit();
-const viewRect = () => renderer.domElement.getBoundingClientRect();
+const viewRect = () => screen.getBoundingClientRect();
 
 let world = null;
 let tableCamera = null;
 
-// Zoom: a crop of the camera image ({ x0, y0, s }: corner and size, shares of the image), eased.
-let view = { x0: 0, y0: 0, s: 1 };
-let viewGoal = view;
-function applyView() {
-  if (view.s >= 0.999) tableCamera.clearViewOffset();
-  else tableCamera.setViewOffset(4, 3, view.x0 * 4, view.y0 * 3, view.s * 4, view.s * 3);
-}
-function zoomTo(box) {
-  if (!box) {
-    viewGoal = { x0: 0, y0: 0, s: 1 };
-    return;
-  }
+// A view is a crop of the frame ({ x0, y0, s }: corner and size, as shares of the frame), eased.
+let view = FULL;
+let viewGoal = FULL;
+let viewName = "player";
+function cropAround(box) {
   const [u0, v0, u1, v1] = [box[0] - ZOOM_MARGIN, box[1] - ZOOM_MARGIN, box[2] + ZOOM_MARGIN, box[3] + ZOOM_MARGIN];
   const s = Math.min(1, Math.max(u1 - u0, v1 - v0, MIN_ZOOM));
   const clamp = (v) => Math.max(0, Math.min(1 - s, v));
-  viewGoal = { x0: clamp((u0 + u1) / 2 - s / 2), y0: clamp((v0 + v1) / 2 - s / 2), s };
+  return { x0: clamp((u0 + u1) / 2 - s / 2), y0: clamp((v0 + v1) / 2 - s / 2), s };
+}
+const boardCrop = () => cropAround(boardBox());
+function show(name, crop) {
+  viewName = name;
+  viewGoal = crop;
 }
 function stepZoom() {
   const d = Math.abs(view.x0 - viewGoal.x0) + Math.abs(view.y0 - viewGoal.y0) + Math.abs(view.s - viewGoal.s);
   if (d < 1e-4) return;
   const k = d < 0.002 ? 1 : 0.12;
   view = { x0: view.x0 + k * (viewGoal.x0 - view.x0), y0: view.y0 + k * (viewGoal.y0 - view.y0), s: view.s + k * (viewGoal.s - view.s) };
-  applyView();
 }
 
-// Image (0-1) -> window pixels, through the current zoom.
+// Image (0-1 of the whole frame) -> window pixels, through the current crop.
 function imageToWindow([u, v]) {
   const r = viewRect();
   return { x: r.left + ((u - view.x0) / view.s) * r.width, y: r.top + ((v - view.y0) / view.s) * r.height };
 }
-// World point -> window pixels (and its 0-1 image position, unzoomed, for framing).
+// World point -> its place in the whole frame (0-1), and -> window pixels through the crop.
 const projected = new THREE.Vector3();
-function worldToWindow(x, y, z) {
-  const r = viewRect();
-  projected.set(x, y, z).project(tableCamera);
-  return { x: r.left + ((projected.x + 1) / 2) * r.width, y: r.top + ((1 - projected.y) / 2) * r.height, behind: projected.z > 1 };
-}
 function worldToImage(x, y, z) {
-  const p = worldToWindow(x, y, z);
-  const r = viewRect();
-  return [view.x0 + ((p.x - r.left) / r.width) * view.s, view.y0 + ((p.y - r.top) / r.height) * view.s];
+  projected.set(x, y, z).project(tableCamera);
+  return [(projected.x + 1) / 2, (1 - projected.y) / 2];
+}
+function worldToWindow(x, y, z) {
+  const p = imageToWindow(worldToImage(x, y, z));
+  p.behind = projected.z > 1;
+  return p;
 }
 const cellCorners = (cell, k = 0.46) => {
   const { x, y } = cellCenter(cell);
@@ -120,7 +140,7 @@ function boardBox() {
   return [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))];
 }
 
-// Each X's mask (from the detector, in its 640x480 image), as small canvases in three looks.
+// Each X's mask (from the detector, in the camera's full frame), as small canvases in three looks.
 function maskCanvases({ w, h, bits }) {
   const out = {};
   for (const [state, [r, g, b]] of Object.entries(COLOURS)) {
@@ -134,9 +154,11 @@ function maskCanvases({ w, h, bits }) {
       for (let x = -1; x <= w; x += 1) {
         const inside = at(x, y);
         const edge = inside && (!at(x - 1, y) || !at(x + 1, y) || !at(x, y - 1) || !at(x, y + 1));
-        const alpha = edge ? 255 : inside ? (state === "idle" ? 40 : 120) : 0;
+        // Nothing over an X nobody is looking at (a white tint washed its colour out); the camera's mask
+        // shows, outlined and tinted, on the one being looked at or picked.
+        const alpha = state === "idle" ? 0 : edge ? 255 : inside ? 110 : 0;
         const i = ((y + 1) * (w + 2) + (x + 1)) * 4;
-        img.data[i] = r; img.data[i + 1] = g; img.data[i + 2] = b; img.data[i + 3] = state === "idle" && edge ? 150 : alpha;
+        img.data[i] = r; img.data[i + 1] = g; img.data[i + 2] = b; img.data[i + 3] = alpha;
       }
     }
     cx.putImageData(img, 0, 0);
@@ -147,7 +169,7 @@ function maskCanvases({ w, h, bits }) {
 
 // ---------------------------------------------------------------- talking to the sim tab
 const channel = new BroadcastChannel(CHANNEL);
-let latest = null; // the newest state snapshot
+let mirror = null; // the sim's state, blended for smooth motion (scene.js)
 let lastFromSim = -1e9;
 let asking = { kind: null, token: 0 }; // what the sim tab is waiting for
 let targets = []; // pick: [{ id, center, box, mask, canvases }]
@@ -171,21 +193,35 @@ function onAsk(data) {
   if (data.kind === "pick") {
     targets = (data.targets ?? []).map((t) => ({ ...t, canvases: maskCanvases(t.mask) }));
     chooser.offer(targets.map((t, i) => ({ id: t.id, name: `Pick this X (${i + 1} of ${targets.length})`, screen: () => imageToWindow(t.center) })), "one of your X's");
-    zoomTo([Math.min(...targets.map((t) => t.box[0])), Math.min(...targets.map((t) => t.box[1])), Math.max(...targets.map((t) => t.box[2])), Math.max(...targets.map((t) => t.box[3]))]);
+    show("xs", cropAround([Math.min(...targets.map((t) => t.box[0])), Math.min(...targets.map((t) => t.box[1])), Math.max(...targets.map((t) => t.box[2])), Math.max(...targets.map((t) => t.box[3]))]));
   } else if (data.kind === "place") {
     cells = data.cells ?? [];
     chooser.offer(cells.map((c) => ({ id: c, name: `Put it ${CELL_NAMES[c]}`, screen: () => { const { x, y } = cellCenter(c); return worldToWindow(x, y, BOARD_TOP); } })), "a square");
-    zoomTo(boardBox());
+    show("board", boardCrop());
   } else {
     chooser.offer([], "");
-    zoomTo(null);
+    show("player", FULL);
     if (data.kind === "again") say("Send OK to play again", 60000);
   }
 }
 
+// The sim tab this tab follows: the newest one (sim tabs say hello when they start). Messages from any
+// other sim tab, including ones still running older code, are ignored.
+let simId = null;
+const send = (message) => channel.postMessage({ ...message, to: simId });
 channel.onmessage = ({ data }) => {
+  if (!data.sim) return; // older sim code: no id
+  if (data.type === "sim-hello" && data.sim !== simId) {
+    simId = data.sim;
+    mirror?.reset();
+    asking = { kind: null, token: 0 };
+    send({ type: "request-state" });
+    return;
+  }
+  if (simId === null) simId = data.sim;
+  if (data.sim !== simId) return;
   lastFromSim = performance.now();
-  if (data.type === "state") latest = data;
+  if (data.type === "state") mirror?.push(data);
   else if (data.type === "ask") onAsk(data);
   else if (data.type === "game") showGame(data);
   else if (data.type === "line") speech = { text: data.text, until: performance.now() + data.ms };
@@ -231,14 +267,14 @@ function rawSince(ms) {
 const chooser = createChooser({
   gaze,
   point: gazePoint,
-  onFocus: (id, state) => channel.postMessage({ type: "focus", kind: asking.kind, id, state }),
+  onFocus: (id, state) => send({ type: "focus", kind: asking.kind, id, state }),
   onPrompt: (text) => {
     if (busy || (speech?.text === "Send OK to play again" && asking.kind === "again")) return;
     promptLine.hidden = !text;
     if (text) promptLine.textContent = text;
   },
   onChoose: (id, { seen, target }) => {
-    channel.postMessage({ type: "choose", token: asking.token, id });
+    send({ type: "choose", token: asking.token, id });
     // They were looking at what they chose: learn from it (raw tracker point vs the target's middle).
     if (seen && target) {
       learning.add(toView(seen), toView(target));
@@ -295,7 +331,7 @@ async function startWebcam() {
   for (let t = 0; !gaze.face && t < 150; t += 1) await sleep(100);
 }
 
-// The person's saved profile (one dot to line it up), or a new one (about 45 s), saved for next time.
+// The person's saved profile (five dots to line it up), or a new one (about 45 s), saved for next time.
 async function eyesForPerson({ fresh = false } = {}) {
   if (busy) return;
   if (MOUSE_ONLY) {
@@ -312,7 +348,7 @@ async function eyesForPerson({ fresh = false } = {}) {
     let line = null;
     if (loaded.ok) {
       const result = await gaze.recenter(layer, viewRect());
-      if (result.ok) line = `Eyes: ${person}'s saved face model (±${saved.errorPx} px), lined up`;
+      if (result.ok) line = `Eyes: ${person}'s saved face model, lined up on ${result.dots} dots (within ${result.fitPx} px)${result.fitPx > 2 * saved.errorPx ? `. That's much worse than when it was made (${saved.errorPx} px): press New eye profile` : ""}`;
     }
     if (!line) {
       const result = await gaze.calibrateProfile(layer, viewRect(), person);
@@ -343,7 +379,7 @@ async function recenterEyes() {
     layer.hidden = false;
     const result = await gaze.recenter(layer, viewRect());
     learning.newSession();
-    chooser.say(result.ok ? `Re-centred (moved ${result.shiftPx} px)` : `Re-centre didn't work: ${result.reason}`);
+    chooser.say(result.ok ? `Lined up again (moved ${result.shiftPx} px, within ${result.fitPx} px)` : `Lining up didn't work: ${result.reason}`);
   } catch { /* Esc */ } finally {
     layer.hidden = true;
     busy = false;
@@ -363,7 +399,7 @@ function onOk(source) {
   if (busy) return;
   if (asking.kind === "again") {
     promptLine.hidden = true;
-    channel.postMessage({ type: "choose", token: asking.token, id: "again" });
+    send({ type: "choose", token: asking.token, id: "again" });
     asking = { kind: null, token: asking.token };
     return;
   }
@@ -375,18 +411,23 @@ function onOk(source) {
 }
 
 const waves = createWaves($("waves"));
+let headsetWas = false; // connected at the last poll
 const bci = createBci({
   keys: true,
   onClench: onOk,
   onLive: ({ connected, live }) => {
     waves.push(live);
     if (!connected) {
-      waves.setMessage("Headset not connected: run tools/ssvep_train.py. Space bar = OK.");
+      headsetWas = false;
+      waves.setMessage(`${headsetProblem(bci)} Space bar = OK.`);
       jawFill.style.width = "0%";
       jawMark.hidden = true;
-      jawStatus.textContent = "OK signal: no headset (space bar = OK)";
+      jawStatus.textContent = `OK signal: ${bci.trainer ? "no data from the headset" : "no headset"} (space bar = OK)`;
       return;
     }
+    // The headset just came (back) and its OK signal hasn't been checked: check it now.
+    if (!headsetWas && ready && !busy && !live.clench.calibrated?.ok) setTimeout(() => !busy && okCheck().then(broadcast), 500);
+    headsetWas = true;
     const c = live.clench;
     if (!c.ready) {
       jawStatus.textContent = "OK signal: settling…";
@@ -402,7 +443,7 @@ const bci = createBci({
 // Relax 5 s, then send OK and hold it 3 s: the trainer sets the threshold.
 async function okCheck() {
   if (!bci.connected) {
-    chooser.say("No headset: start tools/ssvep_train.py first. The space bar works as OK meanwhile.", 4000);
+    chooser.say(`${headsetProblem(bci)} The space bar works as OK meanwhile.`, 5000);
     return null;
   }
   busy = true;
@@ -429,15 +470,60 @@ async function okCheck() {
 }
 
 function broadcast() {
-  channel.postMessage({ type: "camera-status", ready, eyes: gaze.calibrated, headset: bci.connected, ok: Boolean(bci.live?.clench?.calibrated?.ok) });
+  send({ type: "camera-status", ready, eyes: gaze.calibrated, headset: bci.connected, ok: Boolean(bci.live?.clench?.calibrated?.ok) });
 }
 setInterval(broadcast, 2000);
 
 // ---------------------------------------------------------------- drawing
+// The crop of the camera's frame, scaled to the screen.
+// Draws one crop of the camera's frame onto a canvas: renders just that part of the view, at no more
+// than the camera's pixels in it, then scales it to the canvas.
+function shoot(crop, canvas, c2d) {
+  const w = Math.max(2, Math.min(canvas.width, Math.round(crop.s * CAMERA.width)));
+  const h = Math.max(2, Math.round((w * CAMERA.height) / CAMERA.width));
+  if (crop.s < 0.999) tableCamera.setViewOffset(CAMERA.width, CAMERA.height, crop.x0 * CAMERA.width, crop.y0 * CAMERA.height, crop.s * CAMERA.width, crop.s * CAMERA.height);
+  renderer.setViewport(0, 0, w, h);
+  renderer.render(world.scene, tableCamera);
+  tableCamera.clearViewOffset(); // the overlay projects with the whole frame
+  c2d.setTransform(1, 0, 0, 1, 0, 0);
+  c2d.imageSmoothingEnabled = true;
+  c2d.imageSmoothingQuality = "high";
+  c2d.drawImage(sensor, 0, sensor.height - h, w, h, 0, 0, canvas.width, canvas.height);
+}
+function drawFrame() {
+  shoot(view, screen, ctx);
+}
+
+// The small view in the dock: the board when the big one shows the whole frame, otherwise the whole
+// frame with the big view's crop marked on it.
+function drawPip() {
+  if (!pip.width || !pip.height) return;
+  const pipShows = viewName === "player" ? "board" : "player";
+  const crop = pipShows === "board" ? boardCrop() : FULL;
+  shoot(crop, pip, pipCtx);
+  if (pipShows === "player" && view.s < 0.999) {
+    pipCtx.lineWidth = 2 * ratio;
+    pipCtx.strokeStyle = "#ffcf6e";
+    pipCtx.strokeRect(view.x0 * pip.width, view.y0 * pip.height, view.s * pip.width, view.s * pip.height);
+  }
+  const label = pipShows === "board" ? "Board view" : "Player view (whole frame)";
+  if (pipLabel.textContent !== label) pipLabel.textContent = label;
+}
+
+// What the big view is, in camera pixels: a crop is only ever the camera's own pixels, scaled up.
+function drawCaption() {
+  const name = { player: "Player view", board: "Board view", xs: "Your X's" }[viewName];
+  const w = Math.round(view.s * CAMERA.width);
+  const h = Math.round(view.s * CAMERA.height);
+  const text = view.s > 0.999
+    ? `${name} · the camera's whole ${CAMERA.width}×${CAMERA.height} frame`
+    : `${name} · ${w}×${h} of the camera's ${CAMERA.width}×${CAMERA.height} pixels (digital zoom ${(1 / view.s).toFixed(1)}×)`;
+  if (caption.textContent !== text) caption.textContent = text;
+}
+
 function drawOverlay() {
   const r = viewRect();
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  ctx.clearRect(0, 0, r.width, r.height);
   const local = (p) => ({ x: p.x - r.left, y: p.y - r.top });
   const stateOf = (id) => (chooser.confirming === id ? "confirm" : chooser.gazed === id ? "gaze" : "idle");
   if (asking.kind === "pick") {
@@ -505,35 +591,44 @@ function placeBubble(now) {
   bubble.style.transform = `translate(${x}px, ${y}px)`;
 }
 
+// The gaze dot glides to where the eyes are (about 60 ms to get most of the way) instead of jumping.
+let dotAt = null;
 function drawDot() {
   const p = gaze.calibrated ? gazePoint() : null;
   if (!dot.dataset.on || !p || busy) {
     dot.hidden = true;
+    dotAt = null;
     return;
   }
   dot.hidden = false;
-  dot.style.transform = `translate(${Math.max(8, Math.min(innerWidth - 8, p.x))}px, ${Math.max(8, Math.min(innerHeight - 8, p.y))}px)`;
+  dotAt = dotAt ? { x: dotAt.x + 0.3 * (p.x - dotAt.x), y: dotAt.y + 0.3 * (p.y - dotAt.y) } : { ...p };
+  dot.style.transform = `translate(${Math.max(8, Math.min(innerWidth - 8, dotAt.x))}px, ${Math.max(8, Math.min(innerHeight - 8, dotAt.y))}px)`;
   dot.classList.toggle("away", gaze.away);
   dot.classList.toggle("talking", gaze.talking);
 }
 
+// Every screen frame: tell the sim tab to step (it's in the background, where the browser slows its own
+// timers), pose the mirror for this moment, draw the camera's frame, and show a crop of it.
 let last = performance.now();
+let frames = 0;
 function frame() {
   const now = performance.now();
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
-  if (latest) {
-    applySnapshot(latest, world);
-    world.bm.apply(dt, now / 1000);
-  }
+  send({ type: "tick" });
   if (gaze.calibrated && gaze.point) {
     history.push({ t: now, ...gaze.point });
     while (history.length && history[0].t < now - 3000) history.shift();
   }
   stepZoom();
   if (!busy) chooser.tick(now);
-  renderer.render(world.scene, tableCamera);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (mirror.apply()) world.bm.apply(dt, now / 1000);
+  renderer.shadowMap.needsUpdate = true;
+  drawFrame();
   drawOverlay();
+  if ((frames += 1) % 2 === 0) drawPip(); // the small view at half the rate: it's small
+
+  drawCaption();
   placeBubble(now);
   drawDot();
   const simGone = now - lastFromSim > 3000;
@@ -561,7 +656,8 @@ $("ok-check").addEventListener("click", (event) => {
 });
 window.addEventListener("keydown", (event) => {
   if (event.target.closest?.("input")) return;
-  if (event.key === "Escape") chooser.escape();
+  if ((event.key === "m" || event.key === "M") && !event.repeat) onOk("key"); // M = OK, like a clench (or Space)
+  else if (event.key === "Escape") chooser.escape();
   else if (event.key === "r" || event.key === "R") recenterEyes();
   else if (event.key === "d" || event.key === "D") {
     if (dot.dataset.on) delete dot.dataset.on;
@@ -575,10 +671,12 @@ async function start() {
     onProgress: (f) => (loadingText.textContent = `Loading arm ${Math.round(f * 100)}%`),
   });
   tableCamera = world.tableCamera;
+  mirror = createMirror(world);
   world.highlights.group.visible = false; // this tab draws its own highlights over the image
+  show("player", FULL);
   renderer.setAnimationLoop(frame);
   loading.hidden = true;
-  channel.postMessage({ type: "request-state" });
+  send({ type: "request-state" });
   if (document.visibilityState !== "visible") {
     status.hidden = false;
     status.textContent = "Bring this tab to the front to start the eye tracker.";
@@ -595,7 +693,7 @@ async function start() {
   ready = true;
   broadcast();
   showLearning();
-  window.tttCam = { world, chooser, learning, gaze, get view() { return view; }, get asking() { return asking; }, get targets() { return targets; }, get cells() { return cells; }, imageToWindow, worldToWindow, cellCenter };
+  window.tttCam = { world, chooser, learning, gaze, sensor, boardCrop, worldToImage, get view() { return view; }, get viewName() { return viewName; }, get asking() { return asking; }, get targets() { return targets; }, get cells() { return cells; }, imageToWindow, worldToWindow, cellCenter };
 }
 
 start().catch((error) => {

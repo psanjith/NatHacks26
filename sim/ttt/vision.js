@@ -1,7 +1,7 @@
-import { calibrate, pixelToPlane, worldToPixel } from "../calibrate.js";
-import { HEIGHT, WIDTH, captureFrame, findBlobs } from "../detect.js";
+import { calibrate, findMarkers, homography, pixelToPlane, poseFromHomography, worldToPixel } from "../calibrate.js";
+import { captureFrame, findBlobs } from "../detect.js";
 import { solveLinear } from "../linalg.js";
-import { BOARD_MARKERS, BOARD_TOP, MARKERS, O_PIECE, TABLE_Z, X_PIECE, cellAt, onBoard } from "./layout.js";
+import { BOARD_MARKERS, BOARD_TOP, CAMERA, MARKERS, O_PIECE, TABLE_Z, X_PIECE, cellAt, onBoard } from "./layout.js";
 
 // The table camera reads the pieces from pixels only, like the cube sim: compare the frame with an
 // image of the same view without the pieces (the "plate"; on a real camera, a photo of the empty
@@ -12,19 +12,26 @@ import { BOARD_MARKERS, BOARD_TOP, MARKERS, O_PIECE, TABLE_Z, X_PIECE, cellAt, o
 //     of that pattern (the fourth circular harmonic of the pixels' directions) is the direction of
 //     its bars, which only matters modulo 90°;
 //   - kept as a pixel mask, which the camera tab draws over the piece.
-// Calibration: the mount's four stickers give a first camera pose (../calibrate.js); the board's four
-// green corner stickers, near the middle of the image, then refine it (all eight points, least-squares
-// reprojection error). Real piece poses are never read here.
+// It works on the camera's frame scaled to 1080p (the same frame the camera tab shows, at 4K).
+// Calibration, with the table cleared: the board's four green corner stickers give a first camera
+// pose (a homography; which corner is which comes from the mount's cyan sticker next to one of them).
+// Every sticker it can see, on the board and on the arm's mount, then refines it (least-squares
+// reprojection error). If the board's stickers aren't all seen, the mount's four are used as in the
+// cube sim. Real piece poses are never read here.
 
+const W = CAMERA.detect.width; // the frame, scaled to 1080p (layout.js)
+const H = CAMERA.detect.height;
+const PX = H / 480; // pixel sizes below were set on a 480-line image
 const DIFF_THRESHOLD = 26;
-const MIN_AREA = 30;
+const MIN_AREA = Math.round(30 * PX * PX);
 const SHADOW = { minRatio: 0.2, maxChroma: 0.07 };
 // Share of a piece's height to project its pixels at. The visible sides pull the centre towards the
 // camera; projecting a little below the top face cancels that, by an amount that depends on the shape
-// and on this camera's angle (measured: an X came out 1.35 mm too close at 0.6, an O 2 mm too far at 0.4).
-const PROJECT_AT = { X: 0.4, O: 0.6 };
-const EDGE_PX = 6; // stickers whose centre is this close to the image's edge may be cut off: not used
-const MATCH_PX = 30; // a board sticker must be found this close to where the first pose puts it
+// and on this camera's angle.
+const PROJECT_AT = { X: 0.45, O: 0.52 };
+const EDGE_PX = 6 * PX; // stickers whose centre is this close to the image's edge may be cut off: not used
+const MATCH_PX = 30 * PX; // a sticker must be found this close to where the first pose puts it
+const MIN_STICKER_AREA = Math.round(4 * PX * PX);
 
 function isShadow(r, g, b, R, G, B) {
   const lit = R + G + B;
@@ -37,10 +44,10 @@ function isShadow(r, g, b, R, G, B) {
 
 function morph(mask, op) {
   const out = new Uint8Array(mask.length);
-  for (let y = 1; y < HEIGHT - 1; y += 1) {
-    for (let x = 1; x < WIDTH - 1; x += 1) {
-      const p = y * WIDTH + x;
-      const n = mask[p] + mask[p - 1] + mask[p + 1] + mask[p - WIDTH] + mask[p + WIDTH];
+  for (let y = 1; y < H - 1; y += 1) {
+    for (let x = 1; x < W - 1; x += 1) {
+      const p = y * W + x;
+      const n = mask[p] + mask[p - 1] + mask[p + 1] + mask[p - W] + mask[p + W];
       out[p] = op === "erode" ? (n === 5 ? 1 : 0) : (n > 0 ? 1 : 0);
     }
   }
@@ -117,15 +124,54 @@ function refinePose(cal, points) {
   return { ...cal, R, t, center, rmsPx: rms };
 }
 
+// Green sticker centres (pixels), largest first.
+function greenStickers({ data }) {
+  const green = new Uint8Array(W * H);
+  for (let p = 0; p < W * H; p += 1) if (isGreen(data[p * 4], data[p * 4 + 1], data[p * 4 + 2])) green[p] = 1;
+  return findBlobs(green, W, H, MIN_STICKER_AREA).map((pts) => {
+    let u = 0, v = 0;
+    for (let i = 0; i < pts.length; i += 2) { u += pts[i]; v += pts[i + 1]; }
+    return { u: (u * 2) / pts.length + 0.5, v: (v * 2) / pts.length + 0.5, area: pts.length / 2 };
+  }).sort((a, b) => b.area - a.area);
+}
+
+// First camera pose from the board's four green stickers. They look alike, so every way of pairing
+// them with the board's corners (in order around the board, either direction) is tried, and the one
+// that puts the mount's cyan sticker where one was seen wins.
+function poseFromBoard(green, cyans, K) {
+  const cu = green.reduce((s, b) => s + b.u, 0) / 4;
+  const cv = green.reduce((s, b) => s + b.v, 0) / 4;
+  const around = green.slice().sort((a, b) => Math.atan2(a.v - cv, a.u - cu) - Math.atan2(b.v - cv, b.u - cu));
+  const corners = BOARD_MARKERS.map((m) => [m.x, m.y]);
+  let best = null;
+  for (const order of [around, around.slice().reverse()]) {
+    for (let k = 0; k < 4; k += 1) {
+      const pixels = corners.map((_, i) => order[(i + k) % 4]).map((b) => [b.u, b.v]);
+      const Hm = homography(corners, pixels);
+      if (!Hm) continue;
+      const pose = poseFromHomography(Hm, K);
+      // That pose is for the board's plane at z = 0; the board's top is at BOARD_TOP.
+      const t = pose.t.map((v, i) => v - BOARD_TOP * pose.R[2][i]);
+      const center = [0, 1, 2].map((i) => -(pose.R[i][0] * t[0] + pose.R[i][1] * t[1] + pose.R[i][2] * t[2]));
+      if (center[2] <= BOARD_TOP) continue;
+      const cal = { ok: true, K, R: pose.R, t, center };
+      const [u, v] = worldToPixel(cal, MARKERS[0].x, MARKERS[0].y, 0);
+      const miss = Math.min(...cyans.map((c) => Math.hypot(u - c.u, v - c.v)));
+      if (!best || miss < best.miss) best = { cal, miss };
+    }
+  }
+  return best && best.miss < MATCH_PX ? best.cal : null;
+}
+
 export function createVision({ renderer, scene, camera, pieces, hide = [], clearForCalibration = [] }) {
   let calibration = null;
 
   function capture() {
     const hidden = hide.filter((o) => o.visible);
     hidden.forEach((o) => (o.visible = false));
-    const frame = captureFrame(renderer, scene, camera);
+    const frame = captureFrame(renderer, scene, camera, W, H);
     pieces.visible = false;
-    const plate = captureFrame(renderer, scene, camera);
+    const plate = captureFrame(renderer, scene, camera, W, H);
     pieces.visible = true;
     hidden.forEach((o) => (o.visible = true));
     return { frame: frame.data, plate: plate.data };
@@ -136,33 +182,29 @@ export function createVision({ renderer, scene, camera, pieces, hide = [], clear
   function calibrateCamera() {
     const cleared = [pieces, ...hide, ...clearForCalibration].filter((o) => o.visible);
     cleared.forEach((o) => (o.visible = false));
-    const image = captureFrame(renderer, scene, camera);
+    const image = captureFrame(renderer, scene, camera, W, H);
     cleared.forEach((o) => (o.visible = true));
-    const first = calibrate(image, camera.fov);
-    if (!first.ok) return (calibration = first);
-    // The mount's stickers that aren't cut off by the image's edge...
-    const points = [];
-    first.markers.forEach((m, i) => {
-      if (m.u > EDGE_PX && m.u < WIDTH - EDGE_PX && m.v > EDGE_PX && m.v < HEIGHT - EDGE_PX) points.push({ X: [MARKERS[i].x, MARKERS[i].y, 0], uv: [m.u, m.v] });
-    });
-    // ...and the board's green stickers, matched to where the first pose expects them.
-    const green = new Uint8Array(WIDTH * HEIGHT);
-    for (let p = 0; p < WIDTH * HEIGHT; p += 1) if (isGreen(image.data[p * 4], image.data[p * 4 + 1], image.data[p * 4 + 2])) green[p] = 1;
-    const blobs = findBlobs(green, WIDTH, HEIGHT, 4).map((pts) => {
-      let u = 0, v = 0;
-      for (let i = 0; i < pts.length; i += 2) { u += pts[i]; v += pts[i + 1]; }
-      return { u: (u * 2) / pts.length + 0.5, v: (v * 2) / pts.length + 0.5 };
-    });
-    let matched = 0;
-    for (const m of BOARD_MARKERS) {
-      const [pu, pv] = worldToPixel(first, m.x, m.y, BOARD_TOP);
-      const near = blobs.map((b) => ({ b, d: Math.hypot(b.u - pu, b.v - pv) })).sort((a, b) => a.d - b.d)[0];
-      if (near && near.d < MATCH_PX) {
-        points.push({ X: [m.x, m.y, BOARD_TOP], uv: [near.b.u, near.b.v] });
-        matched += 1;
-      }
+    const K = { f: H / 2 / Math.tan((camera.fov * Math.PI) / 360), cx: W / 2, cy: H / 2 };
+    const mount = findMarkers(image);
+    const green = greenStickers(image);
+    let first = green.length >= 4 && mount.cyan.length ? poseFromBoard(green.slice(0, 4), mount.cyan, K) : null;
+    if (!first) {
+      first = calibrate(image, camera.fov);
+      if (!first.ok) return (calibration = { ...first, reason: `saw ${green.length} green board stickers and ${mount.cyan.length} cyan + ${mount.magenta.length} magenta mount stickers` });
     }
-    calibration = points.length >= 5 ? { ...refinePose(first, points), points: points.length, boardStickers: matched } : first;
+    // Every sticker found near where the first pose puts it, and not cut off by the image's edge.
+    const points = [];
+    const inside = (b) => b.u > EDGE_PX && b.u < W - EDGE_PX && b.v > EDGE_PX && b.v < H - EDGE_PX;
+    const match = (X, blobs) => {
+      const [pu, pv] = worldToPixel(first, X[0], X[1], X[2]);
+      const near = blobs.map((b) => ({ b, d: Math.hypot(b.u - pu, b.v - pv) })).sort((a, b) => a.d - b.d)[0];
+      const found = Boolean(near && near.d < MATCH_PX && inside(near.b));
+      if (found) points.push({ X, uv: [near.b.u, near.b.v] });
+      return found;
+    };
+    const mountSeen = MARKERS.filter((m, i) => match([m.x, m.y, 0], i === 0 ? mount.cyan : mount.magenta)).length;
+    const boardSeen = BOARD_MARKERS.filter((m) => match([m.x, m.y, BOARD_TOP], green)).length;
+    calibration = points.length >= 5 ? { ...refinePose(first, points), points: points.length, boardStickers: boardSeen, mountStickers: mountSeen } : { ...first, points: points.length };
     return calibration;
   }
 
@@ -172,7 +214,7 @@ export function createVision({ renderer, scene, camera, pieces, hide = [], clear
     const n = points.length / 2;
     for (let i = 0; i < points.length; i += 2) {
       const x = points[i], y = points[i + 1];
-      const p = (y * WIDTH + x) * 4;
+      const p = (y * W + x) * 4;
       r += frame[p]; g += frame[p + 1]; b += frame[p + 2];
       su += x; sv += y;
       if (x < x0) x0 = x;
@@ -209,7 +251,7 @@ export function createVision({ renderer, scene, camera, pieces, hide = [], clear
       re += rr * Math.cos(a);
       im += rr * Math.sin(a);
     }
-    const centre = Math.round(cv - 0.5) * WIDTH + Math.round(cu - 0.5);
+    const centre = Math.round(cv - 0.5) * W + Math.round(cu - 0.5);
     // The blob's own pixels, cropped to its box, for drawing it.
     const w = x1 - x0 + 1;
     const h = y1 - y0 + 1;
@@ -218,9 +260,9 @@ export function createVision({ renderer, scene, camera, pieces, hide = [], clear
     return {
       kind, x: mx, y: my, yaw: kind === "X" ? Math.atan2(im, re) / 4 : null, area: n, hollow: !mask[centre], surface,
       cell: surface === BOARD_TOP ? cellAt(mx, my, 0.5) : -1,
-      pixel: [cu / WIDTH, cv / HEIGHT], // centre in the image, 0-1
-      box: [x0 / WIDTH, y0 / HEIGHT, (x1 + 1) / WIDTH, (y1 + 1) / HEIGHT],
-      mask: { x: x0, y: y0, w, h, bits, width: WIDTH, height: HEIGHT },
+      pixel: [cu / W, cv / H], // centre in the image, 0-1
+      box: [x0 / W, y0 / H, (x1 + 1) / W, (y1 + 1) / H],
+      mask: { x: x0, y: y0, w, h, bits, width: W, height: H },
     };
   }
 
@@ -228,8 +270,8 @@ export function createVision({ renderer, scene, camera, pieces, hide = [], clear
     if (!calibration?.ok) calibrateCamera();
     if (!calibration.ok) return { ok: false, reason: `calibration: ${calibration.reason}`, pieces: [] };
     const { frame, plate } = capture();
-    let mask = new Uint8Array(WIDTH * HEIGHT);
-    for (let p = 0; p < WIDTH * HEIGHT; p += 1) {
+    let mask = new Uint8Array(W * H);
+    for (let p = 0; p < W * H; p += 1) {
       const i = p * 4;
       const r = frame[i], g = frame[i + 1], b = frame[i + 2];
       const R = plate[i], G = plate[i + 1], B = plate[i + 2];
@@ -237,7 +279,7 @@ export function createVision({ renderer, scene, camera, pieces, hide = [], clear
       if (diff >= DIFF_THRESHOLD && !isShadow(r, g, b, R, G, B)) mask[p] = 1;
     }
     mask = morph(morph(mask, "erode"), "dilate");
-    const found = findBlobs(mask, WIDTH, HEIGHT, MIN_AREA).map((points) => measureBlob(points, frame, mask)).filter(Boolean);
+    const found = findBlobs(mask, W, H, MIN_AREA).map((points) => measureBlob(points, frame, mask)).filter(Boolean);
     return { ok: true, pieces: found };
   }
 
@@ -250,7 +292,7 @@ export function createVision({ renderer, scene, camera, pieces, hide = [], clear
   // Where a world point appears in the image (0-1), with the current calibration.
   const toImage = (x, y, z) => {
     const [u, v] = worldToPixel(calibration, x, y, z);
-    return [u / WIDTH, v / HEIGHT];
+    return [u / W, v / H];
   };
 
   return { detect, readBoard, calibrateCamera, toImage, get calibration() { return calibration; } };

@@ -64,7 +64,7 @@ export function calibrate(image, verticalFovDegrees) {
 }
 
 // 3x3 H with H [X Y 1] ~ [u v 1], from four or more point pairs.
-function homography(world, pixels) {
+export function homography(world, pixels) {
   const A = [];
   const b = [];
   world.forEach(([X, Y], i) => {
@@ -85,7 +85,7 @@ const norm = (a) => Math.sqrt(dot(a, a));
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 
 // The board is the plane z = 0, so H = K [r1 r2 t] up to scale.
-function poseFromHomography(H, { f, cx, cy }) {
+export function poseFromHomography(H, { f, cx, cy }) {
   const column = (j) => [(H[0][j] - cx * H[2][j]) / f, (H[1][j] - cy * H[2][j]) / f, H[2][j]];
   const [m1, m2, m3] = [column(0), column(1), column(2)];
   let lambda = 2 / (norm(m1) + norm(m2));

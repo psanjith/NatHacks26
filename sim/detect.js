@@ -30,19 +30,20 @@ export function detectObjects(renderer, scene, camera, objects) {
 }
 
 // One camera image as RGBA bytes, rows top to bottom.
-export function captureFrame(renderer, scene, camera) {
-  const target = new THREE.WebGLRenderTarget(WIDTH, HEIGHT);
-  const flipped = new Uint8Array(WIDTH * HEIGHT * 4);
+// (640x480 unless another size is given: the tic-tac-toe sim's camera is a 1080p webcam.)
+export function captureFrame(renderer, scene, camera, width = WIDTH, height = HEIGHT) {
+  const target = new THREE.WebGLRenderTarget(width, height);
+  const flipped = new Uint8Array(width * height * 4);
   renderer.shadowMap.needsUpdate = true;
   renderer.setRenderTarget(target);
   renderer.render(scene, camera);
-  renderer.readRenderTargetPixels(target, 0, 0, WIDTH, HEIGHT, flipped);
+  renderer.readRenderTargetPixels(target, 0, 0, width, height, flipped);
   renderer.setRenderTarget(null);
   target.dispose();
   const data = new Uint8Array(flipped.length); // WebGL reads bottom row first
-  const row = WIDTH * 4;
-  for (let y = 0; y < HEIGHT; y += 1) data.set(flipped.subarray((HEIGHT - 1 - y) * row, (HEIGHT - y) * row), y * row);
-  return { data, width: WIDTH, height: HEIGHT };
+  const row = width * 4;
+  for (let y = 0; y < height; y += 1) data.set(flipped.subarray((height - 1 - y) * row, (height - y) * row), y * row);
+  return { data, width, height };
 }
 
 // A darker pixel with the same hue as the plate is a shadow, not an object.

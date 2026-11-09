@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { O_PIECE, O_SUPPLY, TABLE_Z, X_PIECE, X_SUPPLY, supplyPose } from "./layout.js";
+import { GRID, GRID_SIZE, MOUNT_SIZE, O_PIECE, O_SUPPLY, TABLE_Z, X_PIECE, X_SCATTER, X_SUPPLY, supplyPose } from "./layout.js";
 
 // X and O pieces: extruded shapes with rounded edges. An X's own frame has its bars along x and y (a
 // plus sign); its yaw is the direction of one bar, so yaw 45° reads as an "X" on the grid.
@@ -72,6 +72,42 @@ export function resetPieces({ xs, os }) {
     mesh.position.set(x, y, TABLE_Z + O_PIECE.height / 2);
     mesh.quaternion.identity();
   });
+}
+
+// Throws these X's onto random spots the arm can reach (X_SCATTER), at random angles, keeping clear of
+// the board, of each other and of any pieces in `keepClearOf` (positions). allowed(x, y, yaw): any
+// other test a spot and angle must pass (main.js: inside the camera's frame, and an arm pick that grips
+// it well). Returns false if no layout fitted.
+export function scatterXs(meshes, keepClearOf = [], { allowed = () => true, random = Math.random } = {}) {
+  const S = X_SCATTER;
+  const offBoard = (x, y) => Math.abs(x - GRID.x) > GRID_SIZE / 2 + S.boardClearance || Math.abs(y - GRID.y) > GRID_SIZE / 2 + S.boardClearance;
+  const offMount = (x, y) => Math.max(Math.abs(x), Math.abs(y)) > MOUNT_SIZE / 2 + S.mountClearance; // the arm's raised plate
+  for (let layout = 0; layout < 200; layout += 1) {
+    const taken = keepClearOf.map((p) => [p.x, p.y]);
+    const spots = [];
+    for (let k = 0; k < meshes.length; k += 1) {
+      let spot = null;
+      for (let tries = 0; tries < 300 && !spot; tries += 1) {
+        const [lo, hi] = S.yawRanges[Math.floor(random() * S.yawRanges.length)];
+        const yaw = ((lo + random() * (hi - lo)) * Math.PI) / 180;
+        const r = S.minR + random() * (S.maxR - S.minR);
+        const x = r * Math.cos(yaw);
+        const y = r * Math.sin(yaw);
+        const turn = random() * Math.PI * 2;
+        if (offBoard(x, y) && offMount(x, y) && !taken.some(([a, b]) => Math.hypot(a - x, b - y) < S.minGap) && allowed(x, y, turn)) spot = [x, y, turn];
+      }
+      if (!spot) break;
+      taken.push(spot);
+      spots.push(spot);
+    }
+    if (spots.length < meshes.length) continue; // didn't all fit: start this layout again
+    meshes.forEach((mesh, k) => {
+      mesh.position.set(spots[k][0], spots[k][1], TABLE_Z + X_PIECE.height / 2);
+      mesh.quaternion.setFromAxisAngle(Z_AXIS, spots[k][2]);
+    });
+    return true;
+  }
+  return false;
 }
 
 // Collision shapes in the piece's own frame: [half extents, centre, angle about z].

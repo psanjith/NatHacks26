@@ -54,3 +54,50 @@
   font-size: 13px;
   z-index: 5;
 }
+
+/* One camera: the big view and the small one in the dock are both crops of the table camera's frame. */
+.ttt-camera #viewport canvas.frame { position: static; display: block; }
+
+.view-caption {
+  position: fixed;
+  left: 12px;
+  bottom: calc(var(--dock) + 10px);
+  margin: 0;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(16, 18, 24, 0.75);
+  color: #aab0bb;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  z-index: 4;
+}
+.view-caption:empty { display: none; }
+
+.pip-box {
+  position: relative;
+  flex: none;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 0;
+}
+.pip {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: #000;
+}
+.pip-box figcaption {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(16, 18, 24, 0.8);
+  font-size: 11px;
+  pointer-events: none;
+}
+@media (max-width: 700px) {
+  .pip-box { width: 100%; height: auto; }
+}

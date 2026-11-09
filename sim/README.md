@@ -72,4 +72,4 @@ A new eye profile is only accepted when its typical error is **175 px or less** 
 
 The webcam is asked for 1280×720. Each still dot stays up 2.2 s and ignores its first 0.8 s, while the eyes get there. Frames next to a blink are dropped, and so are frames where several inputs disagree with the rest of that dot (a glance away, eyes not settled). A dot left with too few frames gets redone. A profile records its webcam image size and only loads at that size. The "Eyes:" line shows the size in use.
 
-Keys on the Camera tab: Space = clench (no headset needed), G = glances/webcam, K = redo the eye check, R = re-centre the webcam tracker, +/− = clench harder/easier to trigger. `?eyes=mouse` skips the webcam; `?bci=http://host:port` points at a trainer on another port.
+Keys on the Camera tab: Space = clench (no headset needed), G = glances/webcam, K = redo the eye check, R = line the webcam tracker up again (5 dots), +/− = clench harder/easier to trigger. `?eyes=mouse` skips the webcam; `?bci=http://host:port` points at a trainer on another port.

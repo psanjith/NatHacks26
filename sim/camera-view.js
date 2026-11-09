@@ -1,5 +1,5 @@
 import { loadArm } from "./arm.js";
-import { createBci } from "./bci.js";
+import { createBci, headsetProblem } from "./bci.js";
 import { createGazeTracker } from "./gaze.js";
 import { createOverlay } from "./overlay.js";
 import { STATE_CHANNEL, createRenderer, createScene } from "./scene.js";
@@ -482,7 +482,7 @@ const bci = createBci({
   onLive: ({ connected, live }) => {
     waves.push(live);
     if (!connected) {
-      waves.setMessage("Headset not connected: run tools/ssvep_train.py. Space bar = clench.");
+      waves.setMessage(`${headsetProblem(bci)} Space bar = clench.`);
       jawFill.style.width = "0%";
       jawMark.hidden = true;
       jawStatus.textContent = "Jaw: no headset (space bar = clench)";
@@ -572,7 +572,7 @@ async function glanceCheck() {
 // Relax 5 s, clench and hold 3 s: the trainer picks the channels and the threshold.
 async function clenchCheck() {
   if (!bci.connected) {
-    say("No headset: start tools/ssvep_train.py first. The space bar works as a clench meanwhile.", 4000);
+    say(`${headsetProblem(bci)} The space bar works as a clench meanwhile.`, 5000);
     return null;
   }
   busy = true;
@@ -653,7 +653,7 @@ async function startWebcam() {
   updatePrompt();
 }
 
-// Uses the person's saved profile (one dot to line it up), or makes a new one (about 45 s) and saves it.
+// Uses the person's saved profile (five dots to line it up), or makes a new one (about 45 s) and saves it.
 async function eyesForPerson({ fresh = false } = {}) {
   if (busy) return;
   if (MOUSE_ONLY) {
@@ -669,7 +669,7 @@ async function eyesForPerson({ fresh = false } = {}) {
     if (loaded.ok) {
       const result = await gaze.recenter(layer, overlay.rect);
       if (result.ok) {
-        eyesStatus.textContent = `Eyes: ${person}'s saved profile (from ${saved.saved?.slice(0, 10) ?? "earlier"}, ±${saved.errorPx} px, webcam ${gaze.camera?.w}×${gaze.camera?.h})`;
+        eyesStatus.textContent = `Eyes: ${person}'s saved profile (from ${saved.saved?.slice(0, 10) ?? "earlier"}, ±${saved.errorPx} px, webcam ${gaze.camera?.w}×${gaze.camera?.h}), lined up on ${result.dots} dots (within ${result.fitPx} px)`;
         return;
       }
     } else if (saved) {
@@ -703,7 +703,7 @@ async function recenterEyes() {
   try {
     layer.hidden = false;
     const result = await gaze.recenter(layer, overlay.rect);
-    say(result.ok ? `Re-centred (moved ${result.shiftPx} px)` : `Re-centre didn't work: ${result.reason}`);
+    say(result.ok ? `Lined up again (moved ${result.shiftPx} px, within ${result.fitPx} px)` : `Lining up didn't work: ${result.reason}`);
   } catch (error) {
     if (error.message !== "cancelled") say(error.message);
   } finally {

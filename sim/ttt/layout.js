@@ -51,6 +51,11 @@ export const X_SUPPLY = [
   { yaw: -60, r: 0.21 }, { yaw: -60, r: 0.26 },
   { yaw: -82, r: 0.21 },
 ];
+// Scatter: X's thrown anywhere on the arm's right (the X side, nearest the camera) that it can pick
+// them from: on the table (not the board), 17-28 cm from the base, at any angle, clear of the board's
+// edge and of each other by enough for the open fingers. main.js also keeps them inside the camera's
+// frame, below the prompt.
+export const X_SCATTER = { minR: 0.17, maxR: 0.28, yawRanges: [[-100, -20]], minGap: 0.068, boardClearance: 0.035, mountClearance: 0.022 };
 // Seen from above, the fingers close about this far (degrees) anticlockwise of the arm's heading.
 export const CLOSING_OFFSET = 95;
 
@@ -63,10 +68,33 @@ export const O_SUPPLY = [[-0.5, -1], [-0.5, 0], [-0.5, 1], [0.5, -0.5], [0.5, 0.
 // seat is this far below the table top, so his knees fit under it, centred on the board's line.
 export const OPPONENT = { x: 0.61, y: 0, seatBelowTable: 0.22, scale: 0.72 };
 
-// The table camera: high behind the arm's right shoulder, roughly where the person sits, looking over
-// the arm at its X pieces, the board and the opponent. The person plays from this camera's image (the
-// camera tab), zoomed in on whatever they're choosing, so it must see all of those at once.
-export const CAMERA = { lens: { x: -0.27, y: -0.45, z: 0.64 }, aim: { x: 0.28, y: -0.02, z: 0.11 }, fov: 50, aspect: 4 / 3 };
+// The table camera: the only camera. The arm finds pieces in its image, and the person plays from that
+// same image (the camera tab): its whole frame is the player view, and the board view and the zoom onto
+// the X's are crops of it, never a second camera or a re-render. It's modelled on a 4K webcam (a Logitech
+// Brio 4K, say) set to its 78° diagonal field of view. ?camera=1080p in the address (both tabs) makes it
+// an ordinary 1080p webcam with the same lens (a Logitech C920) instead, for slower computers.
+// The camera tab draws it every screen frame for smooth motion (a real Brio gives 30 a second at 4K).
+// The piece detector works on the frame scaled to 1080p, as a real pipeline would: at 4K it took up
+// to 0.3 s, which froze the sim, for no useful gain in accuracy.
+// Where: 90 cm above the table on a pole clamped to its right-hand edge, level with the arm's back,
+// looking down (53°) and across (67° left of straight ahead). Chosen by searching positions a pole can
+// reach for the one that shows the board biggest while the whole frame still holds the arm (parked, and
+// holding an X up high), all five X's, the board, the O tray and his face, and where the arm never stands
+// between the camera and a square: each square is then about 106 camera pixels across (53 at 1080p).
+const CAMERAS = {
+  "4k": { model: "4K webcam, 78° diagonal field of view (like a Logitech Brio 4K)", width: 3840, height: 2160 },
+  "1080p": { model: "1080p webcam, 78° diagonal field of view (like a Logitech C920)", width: 1920, height: 1080 },
+};
+const chosen = typeof location === "undefined" ? null : new URLSearchParams(location.search).get("camera");
+export const CAMERA = {
+  ...(CAMERAS[chosen] ?? CAMERAS["4k"]),
+  diagonalFov: 78,
+  detect: { width: 1920, height: 1080 },
+  lens: { x: -0.2, y: -0.45, z: 0.9 },
+  aim: { x: 0.065, y: 0.174, z: 0 },
+};
+// Vertical field of view (degrees) of that sensor and lens, which is what a pinhole camera model takes.
+export const CAMERA_VFOV = (2 * Math.atan(Math.tan((CAMERA.diagonalFov * Math.PI) / 360) * CAMERA.height / Math.hypot(CAMERA.width, CAMERA.height)) * 180) / Math.PI;
 
 export function supplyPose(slot) {
   const yaw = (slot.yaw * Math.PI) / 180;

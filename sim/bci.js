@@ -4,12 +4,27 @@
 // trace, the clench and glance detectors' state, and electrode impedance. A clench or glance is
 // reported whenever its counter goes up. With keys: true the space bar also counts as a clench.
 // ?bci=http://host:port points at a trainer that isn't on the default 127.0.0.1:8766.
+// Connected means the headset's samples are arriving, not just that the trainer answers: the trainer
+// connects to the Ganglion once, when it starts, so if Bluetooth drops it keeps answering with the last
+// readings frozen. headsetProblem() says which it is.
 
 const BCI = new URLSearchParams(location.search).get("bci") || "http://127.0.0.1:8766";
+const STALE_S = 3; // no samples from the headset for this long = not connected
+
+// What's wrong when it isn't connected, in a sentence (or null when it is).
+export function headsetProblem(bci) {
+  if (bci.connected) return null;
+  if (!bci.trainer) return "Headset not connected: start tools/ssvep_train.py.";
+  const s = bci.live?.stale_s;
+  if (s === null || s === undefined) return "The trainer is running and waiting for the headset: is the Ganglion switched on?";
+  const ago = s < 120 ? `${Math.round(s)} s` : s < 7200 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`;
+  return `The trainer is running, but the headset has sent nothing for ${ago}: switch the Ganglion on and restart the trainer (Ctrl+C, then run it again).`;
+}
 
 export function createBci({ onClench = () => {}, onGlance = () => {}, onLive = () => {}, keys = false, interval = 100 } = {}) {
   let live = null;
-  let connected = false;
+  let trainer = false; // the trainer answered
+  let connected = false; // and the headset's samples are arriving
   let last = null; // previous counters { clench, left, right }
   let next = 0; // next display sample wanted
   let nextEye = 0; // next eye-trace block wanted
@@ -19,7 +34,8 @@ export function createBci({ onClench = () => {}, onGlance = () => {}, onLive = (
     try {
       const response = await fetch(`${BCI}/api/live?from=${next}&efrom=${nextEye}`, { cache: "no-store" });
       live = await response.json();
-      connected = true;
+      trainer = true;
+      connected = live.stale_s !== null && live.stale_s !== undefined && live.stale_s <= STALE_S;
       if (live.wave.end < next) next = 0; // the trainer was restarted
       next = live.wave.end;
       const eye = live.eog.available ? live.eog : null;
@@ -32,6 +48,7 @@ export function createBci({ onClench = () => {}, onGlance = () => {}, onLive = (
       }
       last = now;
     } catch {
+      trainer = false;
       connected = false;
       live = null;
       last = null;
@@ -66,6 +83,7 @@ export function createBci({ onClench = () => {}, onGlance = () => {}, onLive = (
     impedance: (on) => send("/api/impedance", { on }),
     setInterval: (ms) => (wait = ms),
     get connected() { return connected; },
+    get trainer() { return trainer; },
     get live() { return live; },
     url: BCI,
   };

@@ -22,9 +22,14 @@
   <div id="bubble" class="cam-bubble" hidden></div>
   <p id="toast" class="cam-toast" role="status" hidden></p>
   <p id="status" class="camera-status" hidden></p>
+  <p id="view-caption" class="view-caption"></p>
 
   <section class="dock" aria-label="Headset and eye tracker">
     <canvas id="waves" class="waves" aria-label="Live EEG, four channels"></canvas>
+    <figure class="pip-box">
+      <canvas id="pip" class="pip" title="Same camera: the whole frame while the big view is zoomed in, the board otherwise"></canvas>
+      <figcaption id="pip-label">Board view</figcaption>
+    </figure>
     <div class="dock-side">
       <div id="webcam" class="webcam" hidden></div>
       <label class="person">Person <input id="person" type="text" spellcheck="false" autocomplete="off"></label>
@@ -36,7 +41,7 @@
         <button id="recalibrate" type="button">New eye profile</button>
         <button id="ok-check" type="button">Check the OK signal</button>
       </div>
-      <p class="hint">Look at one of your X's, send OK; then look at a square, send OK. OK again or Esc cancels. Space = OK · R = re-centre the eyes · D = gaze dot</p>
+      <p class="hint">Look at one of your X's, send OK; then look at a square, send OK. OK again or Esc cancels. Space or M = OK · R = line up the eyes again (5 dots) · D = gaze dot</p>
     </div>
   </section>
   <div id="gaze-dot" class="gaze-dot" data-on="1" hidden></div>
