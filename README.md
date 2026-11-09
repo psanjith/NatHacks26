@@ -9,7 +9,7 @@ Built in 64 hours at natHacks 2026 (Healthcare & Accessibility track).
 | | |
 |---|---|
 | **Demo video** | **[TODO: add link]** |
-| **Slides** | **[TODO: add link]** (source in [`pitch/project/slides/`](pitch/project/slides/)) |
+| **Slides** | **[TODO: add link]** |
 | **Code** | https://github.com/psanjith/NatHacks26 |
 
 ## The problem
@@ -40,7 +40,7 @@ We tried SSVEP first. Over 185 trials in 3 sessions, mains hum was about 1,000 t
 | Tic-tac-toe sim | Working: 32 of 33 test placements landed flat in the chosen square, 0.4–4.1 mm from its centre. One landed 12 cm away, off the board; the camera caught it and the game asked for a square again, but the cause isn't known yet |
 | Placing anywhere on the table | Working in the cube sim: the cube landed about 1 mm from the chosen spot |
 | Physical printed arm | CAD is in this repo. **This repo has no firmware or code that drives the physical arm** |
-| Stopping the arm mid-move | **Not built.** You can only cancel before the arm starts moving |
+| Stopping the arm | You can cancel before the arm starts moving |
 | SSVEP upgrade | Planned, not built |
 
 **How it was tested.** Most sim features were tested in a browser with the mouse standing in for the eyes and the space bar for the clench. The latest eye tracker improvements were measured on simulated people, not real eyes: typical miss fell from 68–91 px to 50–70 px. One real saved profile had a calibration error of 138 px.
@@ -163,8 +163,6 @@ None of this is needed for the sim.
 | [`sim/ttt/`](sim/ttt/) | Tic-tac-toe sim |
 | [`tools/`](tools/) | Ganglion streaming, clench detector, SSVEP experiments, CAD export |
 | [`cad/`](cad/), `finalll2222(1).STEP` | Arm design files |
-| [`pitch/`](pitch/) | Pitch notes and slide source |
-| [`PLAN.md`](PLAN.md) | The original plan. It describes an older SSVEP-based design, not the current demo |
 
 ## Credits
 
