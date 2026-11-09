@@ -1,0 +1,4 @@
+# Headset software (tools/ssvep_train.py). Tested with Python 3.11. The sim itself needs only Python 3.
+brainflow==5.23.0
+numpy==2.4.6
+scipy==1.17.1
